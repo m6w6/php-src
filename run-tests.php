@@ -136,6 +136,12 @@ if ((substr(PHP_OS, 0, 3) == "WIN") && empty($environment["SystemRoot"])) {
   $environment["SystemRoot"] = getenv("SystemRoot");
 }
 
+if (is_readable("/proc/cpuinfo")) {
+	$concurrency = min(64, max(1, preg_match_all("/^processor/mi", file_get_contents("/proc/cpuinfo"))));
+} else {
+	$concurrency = 1;
+}
+
 // Don't ever guess at the PHP executable location.
 // Require the explicit specification.
 // Otherwise we could end up testing the wrong file!
@@ -244,7 +250,7 @@ $ini_overwrites = array(
 
 function write_information($show_html)
 {
-	global $cwd, $php, $php_cgi, $php_info, $user_tests, $ini_overwrites, $pass_options, $exts_to_test, $leak_check, $valgrind_header;
+	global $cwd, $php, $php_cgi, $php_info, $user_tests, $ini_overwrites, $pass_options, $exts_to_test, $leak_check, $valgrind_header, $concurrency;
 
 	// Get info from php
 	$info_file = __DIR__ . '/run-test-info.php';
@@ -304,6 +310,7 @@ Extra dirs  : ";
 	}
 	echo "
 VALGRIND    : " . ($leak_check ? $valgrind_header : 'Not used') . "
+CONCURRENCY : " . $concurrency . "
 =====================================================================
 ";
 }
@@ -653,6 +660,9 @@ if (isset($argc) && $argc > 1) {
 				case '--version':
 					echo '$Id$' . "\n";
 					exit(1);
+				case '--concurrency':
+					$concurrency = min(64, max(1, $argv[++$i]));
+					break;
 
 				default:
 					echo "Illegal switch '$switch' specified!\n";
@@ -1116,9 +1126,30 @@ function system_with_timeout($commandline, $env = null, $stdin = null)
 	return $data;
 }
 
+function catch_result(&$children)
+{
+	global $test_results, $failed_tests_file;
+	
+	if (0 < ($pid = pcntl_wait($status))) {
+		list($index, $name, $socket) = $children[$pid];
+		$result = trim(fgets($socket));
+		fclose($socket);
+		unset($children[$pid]);
+
+		if (!is_array($name) && $result != 'REDIR') {
+			$test_results[$index] = $result;
+			if ($failed_tests_file && ($result == 'XFAILED' || $result == 'FAILED' || $result == 'WARNED' || $result == 'LEAKED')) {
+				fwrite($failed_tests_file, "$index\n");
+			}
+		}
+	}
+}
+
 function run_all_tests($test_files, $env, $redir_tested = null)
 {
-	global $test_results, $failed_tests_file, $php, $test_cnt, $test_idx;
+	global $php, $test_idx, $concurrency;
+	
+	$children = array();
 
 	foreach($test_files as $name) {
 
@@ -1134,14 +1165,26 @@ function run_all_tests($test_files, $env, $redir_tested = null)
 			$index = $name;
 		}
 		$test_idx++;
-		$result = run_test($php, $name, $env);
-
-		if (!is_array($name) && $result != 'REDIR') {
-			$test_results[$index] = $result;
-			if ($failed_tests_file && ($result == 'XFAILED' || $result == 'FAILED' || $result == 'WARNED' || $result == 'LEAKED')) {
-				fwrite($failed_tests_file, "$index\n");
-			}
+		
+		if (count($children) >= $concurrency) {
+			catch_result($children);
 		}
+		
+		list($parent, $child) = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
+		
+		if (($pid = pcntl_fork())) {
+			fclose($parent);
+			$children[$pid] = array($index, $name, $child);
+		} else {
+			fclose($child);
+			fwrite($parent, run_test($php, $name, $env) . "\n");
+			fclose($parent);
+			exit;
+		}
+	}
+	
+	while (count($children)) {
+		catch_result($children);
 	}
 }
 
