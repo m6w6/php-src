@@ -1267,7 +1267,7 @@ static int ZEND_FASTCALL  ZEND_INIT_FCALL_BY_NAME_SPEC_CONST_HANDLER(ZEND_OPCODE
 			if (call->object) {
 				Z_ADDREF_P(call->object);
 			}
-			if (IS_CONST == IS_VAR && 0 &&
+			if (IS_CONST == IS_VAR && 0 && Z_REFCOUNT_P(function_name) == 1 &&
 			    call->fbc->common.fn_flags & ZEND_ACC_CLOSURE) {
 				/* Delay closure destruction until its invocation */
 				call->fbc->common.prototype = (zend_function*)function_name;
@@ -1592,7 +1592,7 @@ static int ZEND_FASTCALL  ZEND_INIT_FCALL_BY_NAME_SPEC_TMP_HANDLER(ZEND_OPCODE_H
 			if (call->object) {
 				Z_ADDREF_P(call->object);
 			}
-			if (IS_TMP_VAR == IS_VAR && 1 &&
+			if (IS_TMP_VAR == IS_VAR && 1 && Z_REFCOUNT_P(function_name) == 1 &&
 			    call->fbc->common.fn_flags & ZEND_ACC_CLOSURE) {
 				/* Delay closure destruction until its invocation */
 				call->fbc->common.prototype = (zend_function*)function_name;
@@ -1779,7 +1779,7 @@ static int ZEND_FASTCALL  ZEND_INIT_FCALL_BY_NAME_SPEC_VAR_HANDLER(ZEND_OPCODE_H
 			if (call->object) {
 				Z_ADDREF_P(call->object);
 			}
-			if (IS_VAR == IS_VAR && (free_op2.var != NULL) &&
+			if (IS_VAR == IS_VAR && (free_op2.var != NULL) && Z_REFCOUNT_P(function_name) == 1 &&
 			    call->fbc->common.fn_flags & ZEND_ACC_CLOSURE) {
 				/* Delay closure destruction until its invocation */
 				call->fbc->common.prototype = (zend_function*)function_name;
@@ -2004,7 +2004,7 @@ static int ZEND_FASTCALL  ZEND_INIT_FCALL_BY_NAME_SPEC_CV_HANDLER(ZEND_OPCODE_HA
 			if (call->object) {
 				Z_ADDREF_P(call->object);
 			}
-			if (IS_CV == IS_VAR && 0 &&
+			if (IS_CV == IS_VAR && 0 && Z_REFCOUNT_P(function_name) == 1 &&
 			    call->fbc->common.fn_flags & ZEND_ACC_CLOSURE) {
 				/* Delay closure destruction until its invocation */
 				call->fbc->common.prototype = (zend_function*)function_name;
@@ -2417,9 +2417,12 @@ static int ZEND_FASTCALL  ZEND_RETURN_BY_REF_SPEC_CONST_HANDLER(ZEND_OPCODE_HAND
 			} else if (EX_T(opline->op1.var).var.ptr_ptr == &EX_T(opline->op1.var).var.ptr) {
 				zend_error(E_NOTICE, "Only variable references should be returned by reference");
 				if (EG(return_value_ptr_ptr)) {
-					retval_ptr = *retval_ptr_ptr;
-					*EG(return_value_ptr_ptr) = retval_ptr;
-					Z_ADDREF_P(retval_ptr);
+					zval *ret;
+
+					ALLOC_ZVAL(ret);
+					INIT_PZVAL_COPY(ret, *retval_ptr_ptr);
+					zval_copy_ctor(ret);
+					*EG(return_value_ptr_ptr) = ret;
 				}
 				break;
 			}
@@ -2904,7 +2907,7 @@ static int ZEND_FASTCALL  ZEND_FE_RESET_SPEC_CONST_HANDLER(ZEND_OPCODE_HANDLER_A
 				zend_uchar key_type;
 
 				key_type = zend_hash_get_current_key_ex(fe_ht, &str_key, &str_key_len, &int_key, 0, NULL);
-				if (key_type != HASH_KEY_NON_EXISTANT &&
+				if (key_type != HASH_KEY_NON_EXISTENT &&
 					(key_type == HASH_KEY_IS_LONG ||
 				     zend_check_property_access(zobj, str_key, str_key_len-1 TSRMLS_CC) == SUCCESS)) {
 					break;
@@ -3561,9 +3564,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_CONST_CONST_HANDLER(
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -3732,9 +3737,11 @@ static int ZEND_FASTCALL  ZEND_FETCH_CONSTANT_SPEC_CONST_CONST_HANDLER(ZEND_OPCO
 				ce = CACHED_PTR(opline->op1.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+				if (UNEXPECTED(EG(exception) != NULL)) {
+					HANDLE_EXCEPTION();
+				}
 				if (UNEXPECTED(ce == NULL)) {
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 				}
 				CACHE_PTR(opline->op1.literal->cache_slot, ce);
 			}
@@ -3918,15 +3925,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_CONST_CONST_HANDLER(ZEND_OPCODE_HA
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_CONST != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_CONST == IS_VAR || IS_CONST == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -4548,9 +4557,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_CONST_TMP_HANDLER(ZE
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -5404,9 +5415,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_CONST_VAR_HANDLER(ZE
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -5667,15 +5680,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_CONST_VAR_HANDLER(ZEND_OPCODE_HAND
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_CONST != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_CONST == IS_VAR || IS_CONST == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -6120,9 +6135,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_CONST_UNUSED_HANDLER
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -6368,15 +6385,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_CONST_UNUSED_HANDLER(ZEND_OPCODE_H
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_CONST != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_CONST == IS_VAR || IS_CONST == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -6976,9 +6995,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_CONST_CV_HANDLER(ZEN
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -7724,9 +7745,12 @@ static int ZEND_FASTCALL  ZEND_RETURN_BY_REF_SPEC_TMP_HANDLER(ZEND_OPCODE_HANDLE
 			} else if (EX_T(opline->op1.var).var.ptr_ptr == &EX_T(opline->op1.var).var.ptr) {
 				zend_error(E_NOTICE, "Only variable references should be returned by reference");
 				if (EG(return_value_ptr_ptr)) {
-					retval_ptr = *retval_ptr_ptr;
-					*EG(return_value_ptr_ptr) = retval_ptr;
-					Z_ADDREF_P(retval_ptr);
+					zval *ret;
+
+					ALLOC_ZVAL(ret);
+					INIT_PZVAL_COPY(ret, *retval_ptr_ptr);
+					zval_copy_ctor(ret);
+					*EG(return_value_ptr_ptr) = ret;
 				}
 				break;
 			}
@@ -8212,7 +8236,7 @@ static int ZEND_FASTCALL  ZEND_FE_RESET_SPEC_TMP_HANDLER(ZEND_OPCODE_HANDLER_ARG
 				zend_uchar key_type;
 
 				key_type = zend_hash_get_current_key_ex(fe_ht, &str_key, &str_key_len, &int_key, 0, NULL);
-				if (key_type != HASH_KEY_NON_EXISTANT &&
+				if (key_type != HASH_KEY_NON_EXISTENT &&
 					(key_type == HASH_KEY_IS_LONG ||
 				     zend_check_property_access(zobj, str_key, str_key_len-1 TSRMLS_CC) == SUCCESS)) {
 					break;
@@ -9187,15 +9211,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_TMP_CONST_HANDLER(ZEND_OPCODE_HAND
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_TMP_VAR != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_TMP_VAR == IS_VAR || IS_TMP_VAR == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 					zval_dtor(free_op1.var);
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -10904,15 +10930,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_TMP_VAR_HANDLER(ZEND_OPCODE_HANDLE
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_TMP_VAR != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_TMP_VAR == IS_VAR || IS_TMP_VAR == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 					zval_dtor(free_op1.var);
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -11484,15 +11512,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_TMP_UNUSED_HANDLER(ZEND_OPCODE_HAN
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_TMP_VAR != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_TMP_VAR == IS_VAR || IS_TMP_VAR == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 					zval_dtor(free_op1.var);
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -12944,9 +12974,12 @@ static int ZEND_FASTCALL  ZEND_RETURN_BY_REF_SPEC_VAR_HANDLER(ZEND_OPCODE_HANDLE
 			} else if (EX_T(opline->op1.var).var.ptr_ptr == &EX_T(opline->op1.var).var.ptr) {
 				zend_error(E_NOTICE, "Only variable references should be returned by reference");
 				if (EG(return_value_ptr_ptr)) {
-					retval_ptr = *retval_ptr_ptr;
-					*EG(return_value_ptr_ptr) = retval_ptr;
-					Z_ADDREF_P(retval_ptr);
+					zval *ret;
+
+					ALLOC_ZVAL(ret);
+					INIT_PZVAL_COPY(ret, *retval_ptr_ptr);
+					zval_copy_ctor(ret);
+					*EG(return_value_ptr_ptr) = ret;
 				}
 				break;
 			}
@@ -13542,7 +13575,7 @@ static int ZEND_FASTCALL  ZEND_FE_RESET_SPEC_VAR_HANDLER(ZEND_OPCODE_HANDLER_ARG
 				zend_uchar key_type;
 
 				key_type = zend_hash_get_current_key_ex(fe_ht, &str_key, &str_key_len, &int_key, 0, NULL);
-				if (key_type != HASH_KEY_NON_EXISTANT &&
+				if (key_type != HASH_KEY_NON_EXISTENT &&
 					(key_type == HASH_KEY_IS_LONG ||
 				     zend_check_property_access(zobj, str_key, str_key_len-1 TSRMLS_CC) == SUCCESS)) {
 					break;
@@ -15431,9 +15464,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_VAR_CONST_HANDLER(ZE
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -15602,9 +15637,11 @@ static int ZEND_FASTCALL  ZEND_FETCH_CONSTANT_SPEC_VAR_CONST_HANDLER(ZEND_OPCODE
 				ce = CACHED_PTR(opline->op1.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+				if (UNEXPECTED(EG(exception) != NULL)) {
+					HANDLE_EXCEPTION();
+				}
 				if (UNEXPECTED(ce == NULL)) {
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 				}
 				CACHE_PTR(opline->op1.literal->cache_slot, ce);
 			}
@@ -15788,15 +15825,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_VAR_CONST_HANDLER(ZEND_OPCODE_HAND
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_VAR != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_VAR == IS_VAR || IS_VAR == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 					zval_ptr_dtor(&free_op1.var);
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -17778,9 +17817,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_VAR_TMP_HANDLER(ZEND
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -20089,9 +20130,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_VAR_VAR_HANDLER(ZEND
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -20352,15 +20395,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_VAR_VAR_HANDLER(ZEND_OPCODE_HANDLE
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_VAR != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_VAR == IS_VAR || IS_VAR == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 					zval_ptr_dtor(&free_op1.var);
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -21525,9 +21570,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_VAR_UNUSED_HANDLER(Z
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -21773,15 +21820,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_VAR_UNUSED_HANDLER(ZEND_OPCODE_HAN
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_VAR != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_VAR == IS_VAR || IS_VAR == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 					zval_ptr_dtor(&free_op1.var);
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -23539,9 +23588,11 @@ static int ZEND_FASTCALL  ZEND_INIT_STATIC_METHOD_CALL_SPEC_VAR_CV_HANDLER(ZEND_
 			ce = CACHED_PTR(opline->op1.literal->cache_slot);
 		} else {
 			ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+			if (UNEXPECTED(EG(exception) != NULL)) {
+				HANDLE_EXCEPTION();
+			}
 			if (UNEXPECTED(ce == NULL)) {
-				CHECK_EXCEPTION();
-				ZEND_VM_NEXT_OPCODE();
+				zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 			}
 			CACHE_PTR(opline->op1.literal->cache_slot, ce);
 		}
@@ -25210,9 +25261,11 @@ static int ZEND_FASTCALL  ZEND_FETCH_CONSTANT_SPEC_UNUSED_CONST_HANDLER(ZEND_OPC
 				ce = CACHED_PTR(opline->op1.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op1.zv), Z_STRSIZE_P(opline->op1.zv), opline->op1.literal + 1, opline->extended_value TSRMLS_CC);
+				if (UNEXPECTED(EG(exception) != NULL)) {
+					HANDLE_EXCEPTION();
+				}
 				if (UNEXPECTED(ce == NULL)) {
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op1.zv));
 				}
 				CACHE_PTR(opline->op1.literal->cache_slot, ce);
 			}
@@ -30580,9 +30633,12 @@ static int ZEND_FASTCALL  ZEND_RETURN_BY_REF_SPEC_CV_HANDLER(ZEND_OPCODE_HANDLER
 			} else if (EX_T(opline->op1.var).var.ptr_ptr == &EX_T(opline->op1.var).var.ptr) {
 				zend_error(E_NOTICE, "Only variable references should be returned by reference");
 				if (EG(return_value_ptr_ptr)) {
-					retval_ptr = *retval_ptr_ptr;
-					*EG(return_value_ptr_ptr) = retval_ptr;
-					Z_ADDREF_P(retval_ptr);
+					zval *ret;
+
+					ALLOC_ZVAL(ret);
+					INIT_PZVAL_COPY(ret, *retval_ptr_ptr);
+					zval_copy_ctor(ret);
+					*EG(return_value_ptr_ptr) = ret;
 				}
 				break;
 			}
@@ -31165,7 +31221,7 @@ static int ZEND_FASTCALL  ZEND_FE_RESET_SPEC_CV_HANDLER(ZEND_OPCODE_HANDLER_ARGS
 				zend_uchar key_type;
 
 				key_type = zend_hash_get_current_key_ex(fe_ht, &str_key, &str_key_len, &int_key, 0, NULL);
-				if (key_type != HASH_KEY_NON_EXISTANT &&
+				if (key_type != HASH_KEY_NON_EXISTENT &&
 					(key_type == HASH_KEY_IS_LONG ||
 				     zend_check_property_access(zobj, str_key, str_key_len-1 TSRMLS_CC) == SUCCESS)) {
 					break;
@@ -33052,15 +33108,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_CV_CONST_HANDLER(ZEND_OPCODE_HANDL
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_CV != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_CV == IS_VAR || IS_CV == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -37345,15 +37403,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_CV_VAR_HANDLER(ZEND_OPCODE_HANDLER
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_CV != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_CV == IS_VAR || IS_CV == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
@@ -38638,15 +38698,17 @@ static int ZEND_FASTCALL  ZEND_UNSET_VAR_SPEC_CV_UNUSED_HANDLER(ZEND_OPCODE_HAND
 				ce = CACHED_PTR(opline->op2.literal->cache_slot);
 			} else {
 				ce = zend_fetch_class_by_name(Z_STRVAL_P(opline->op2.zv), Z_STRSIZE_P(opline->op2.zv), opline->op2.literal + 1, 0 TSRMLS_CC);
-				if (UNEXPECTED(ce == NULL)) {
+				if (UNEXPECTED(EG(exception) != NULL)) {
 					if (IS_CV != IS_CONST && varname == &tmp) {
 						zval_dtor(&tmp);
 					} else if (IS_CV == IS_VAR || IS_CV == IS_CV) {
 						zval_ptr_dtor(&varname);
 					}
 
-					CHECK_EXCEPTION();
-					ZEND_VM_NEXT_OPCODE();
+					HANDLE_EXCEPTION();
+				}
+				if (UNEXPECTED(ce == NULL)) {
+					zend_error_noreturn(E_ERROR, "Class '%s' not found", Z_STRVAL_P(opline->op2.zv));
 				}
 				CACHE_PTR(opline->op2.literal->cache_slot, ce);
 			}
