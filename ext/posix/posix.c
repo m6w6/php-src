@@ -834,11 +834,11 @@ PHP_FUNCTION(posix_getcwd)
 PHP_FUNCTION(posix_mkfifo)
 {
 	char *path;
-	int path_len;
+	zend_str_size_int path_len;
 	long mode;
 	int     result;
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "pl", &path, &path_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Pl", &path, &path_len, &mode) == FAILURE) {
 		RETURN_FALSE;
 	}
 
@@ -863,7 +863,7 @@ PHP_FUNCTION(posix_mkfifo)
 PHP_FUNCTION(posix_mknod)
 {
 	char *path;
-	int path_len;
+	zend_str_size_int path_len;
 	long mode;
 	long major = 0, minor = 0;
 	int result;
@@ -871,7 +871,7 @@ PHP_FUNCTION(posix_mknod)
 
 	php_dev = 0;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "pl|ll", &path, &path_len,
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Pl|ll", &path, &path_len,
 			&mode, &major, &minor) == FAILURE) {
 		RETURN_FALSE;
 	}
@@ -948,10 +948,11 @@ int php_posix_group_to_array(struct group *g, zval *array_group) /* {{{ */
 PHP_FUNCTION(posix_access)
 {
 	long mode = 0;
-	int filename_len, ret;
+	zend_str_size_int filename_len;
+	zend_str_size_int ret;
 	char *filename, *path;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "p|l", &filename, &filename_len, &mode) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "P|l", &filename, &filename_len, &mode) == FAILURE) {
 		RETURN_FALSE;
 	}
 
@@ -992,14 +993,14 @@ PHP_FUNCTION(posix_getgrnam)
 {
 	char *name;
 	struct group *g;
-	int name_len;
+	zend_str_size_int name_len;
 #if defined(ZTS) && defined(HAVE_GETGRNAM_R) && defined(_SC_GETGR_R_SIZE_MAX)
 	struct group gbuf;
 	long buflen;
 	char *buf;
 #endif
 	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &name_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &name, &name_len) == FAILURE) {
 		RETURN_FALSE;
 	}
 
@@ -1111,14 +1112,14 @@ PHP_FUNCTION(posix_getpwnam)
 {
 	struct passwd *pw;
 	char *name;
-	int name_len;
+	zend_str_size_int name_len;
 #if defined(ZTS) && defined(_SC_GETPW_R_SIZE_MAX) && defined(HAVE_GETPWNAM_R)
 	struct passwd pwbuf;
 	long buflen;
 	char *buf;
 #endif
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &name, &name_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &name, &name_len) == FAILURE) {
 		RETURN_FALSE;
 	}
 
@@ -1355,9 +1356,9 @@ PHP_FUNCTION(posix_initgroups)
 {
 	long basegid;
 	char *name;
-	int name_len;
+	zend_str_size_int name_len;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl", &name, &name_len, &basegid) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Sl", &name, &name_len, &basegid) == FAILURE) {
 		RETURN_FALSE;
 	}
 
