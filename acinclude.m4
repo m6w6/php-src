@@ -1051,32 +1051,32 @@ but you've either not enabled $2, or have disabled it.
 ])
   fi
   dnl Some systems require that we link $2 to $1 when building
-  ifelse($am_i_shared, yes, [
+  if test "$4" = "true" && test "$am_i_shared" = "yes"; then
     dnl dependency is configured to be built shared
-    ifelse($is_it_shared, yes, [
+    if test "$is_it_shared" = "yes"; then
       extpah="\$(phplibdir)"
       lrpath="\$(EXTENSION_DIR)"
-      ifelse($ld_runpath_switch,, [
-        $translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$1.\$(SHLIB_SUFFIX_NAME) $translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
-      ], [
-        $translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$1.\$(SHLIB_SUFFIX_NAME) $ld_runpath_switch$lrpath $translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
-      ])
-    ], [
-      ifelse($PHP_PECL_EXTENSION, $1, [
+      if test -z "$ld_runpath_switch"; then
+        translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$2.\$(SHLIB_SUFFIX_NAME) $[]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
+      else
+        translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$2.\$(SHLIB_SUFFIX_NAME) $ld_runpath_switch$lrpath $[]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
+      fi
+    else
+      if test "$PHP_PECL_EXTENSION" = "$1"; then
         if test -x "$PHP_EXECUTABLE"; then
           grepext=`$PHP_EXECUTABLE -m | $EGREP ^$extname\$`
-          ifelse($grepext, $1, [
+          if test "$grepext" = "$1"; then
             extpath=`$PHP_EXECUTABLE -i | $AWK '/extension_dir/ {print$3}'`
-            ifelse($ld_runpath_switch,, [
-              $translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$1.\$(SHLIB_SUFFIX_NAME) $translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
-            ], [
-              $translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$1.\$(SHLIB_SUFFIX_NAME) $ld_runpath_switch$extpath $translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
-            ])
-          ])
+            if -z "$ld_runpath_switch"; then
+              translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$2.\$(SHLIB_SUFFIX_NAME) $[]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
+            else
+              translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$2.\$(SHLIB_SUFFIX_NAME) $ld_runpath_switch$extpath $[]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
+            fi
+          fi
         fi
-      ])
-    ])
-  ])
+      fi
+    fi
+  fi
 ])
 
 dnl -------------------------------------------------------------------------
