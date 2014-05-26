@@ -97,6 +97,49 @@ PHPAPI PHP_FUNCTION(dl)
 #define USING_ZTS 0
 #endif
 
+/* {{{ int php_load_extension_deps
+ */
+static int php_load_extension_deps(zend_module_entry *mod, int type TSRMLS_DC)
+{
+	if (mod->deps) {
+		const zend_module_dep *dep = mod->deps;
+
+		while (dep->name) {
+			size_t name_len;
+			char *name_str;
+
+			if (dep->type == MODULE_DEP_REQUIRED) {
+				zend_module_entry *req_mod;
+
+				name_len = strlen(dep->name);
+				name_str = zend_str_tolower_dup(dep->name, name_len);
+				if (zend_hash_find(&module_registry, name_str, name_len+1, (void**) &req_mod) == FAILURE || !req_mod->module_started) {
+					char dep_mod_str[FILENAME_MAX] = {0};
+#if PHP_WIN32
+					slprintf(dep_mod_str, sizeof(dep_mod_str), "php_%s.dll", name_str);
+#else
+					slprintf(dep_mod_str, sizeof(dep_mod_str), "%s.%s", name_str, PHP_SHLIB_SUFFIX);
+#endif
+					/* TODO: Check version relationship */
+					if (SUCCESS != php_load_extension(dep_mod_str, type, 0 TSRMLS_CC)) {
+						efree(name_str);
+						php_error_docref(NULL TSRMLS_CC, type == MODULE_TEMPORARY ? E_WARNING : E_CORE_WARNING,
+								"Cannot load module '%s' because required module '%s' is not loaded",
+								mod->name, dep->name);
+						mod->module_started = 0;
+						return FAILURE;
+					}
+				}
+				efree(name_str);
+			}
+			++dep;
+		}
+	}
+
+	return SUCCESS;
+}
+/* }}} */
+
 /* {{{ php_load_extension
  */
 PHPAPI int php_load_extension(char *filename, int type, int start_now TSRMLS_DC)
@@ -238,6 +281,11 @@ PHPAPI int php_load_extension(char *filename, int type, int start_now TSRMLS_DC)
 	module_entry->type = type;
 	module_entry->module_number = zend_next_free_module();
 	module_entry->handle = handle;
+
+	if (SUCCESS != php_load_extension_deps(module_entry, type TSRMLS_CC)) {
+		DL_UNLOAD(handle);
+		return FAILURE;
+	}
 
 	if ((module_entry = zend_register_module_ex(module_entry TSRMLS_CC)) == NULL) {
 		DL_UNLOAD(handle);
