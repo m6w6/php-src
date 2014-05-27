@@ -114,8 +114,10 @@ static int php_load_extension_deps(zend_module_entry *mod, int type, int start_n
 				||	(!req_mod->module_started && ((type == MODULE_TEMPORARY) || start_now))) {
 					/* module is not already loaded, or has to be started */
 					char dep_mod_str[FILENAME_MAX] = {0};
-#if PHP_WIN32
+#if defined(PHP_WIN32)
 					slprintf(dep_mod_str, sizeof(dep_mod_str), "php_%s.dll", name_str);
+#elif defined(NETWARE)
+					slprintf(dep_mod_str, sizeof(dep_mod_str), "php%s.%s", name_str, PHP_SHLIB_SUFFIX);
 #else
 					slprintf(dep_mod_str, sizeof(dep_mod_str), "%s.%s", name_str, PHP_SHLIB_SUFFIX);
 #endif
