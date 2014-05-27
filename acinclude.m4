@@ -1051,29 +1051,18 @@ but you've either not enabled $2, or have disabled it.
 ])
   fi
   dnl Some systems require that we link $2 to $1 when building
-  if test "$4" = "true" && test "$am_i_shared" = "yes"; then
-    dnl dependency is configured to be built shared
+  if test "$am_i_shared" = "yes" && test -n "$ld_runpath_switch"; then
+    case $host_alias in
+      *netware*[)] depname=php$2.$SHLIB_DL_SUFFIX_NAME;;
+      *[)]         depname=$2.$SHLIB_DL_SUFFIX_NAME;;
+    esac
     if test "$is_it_shared" = "yes"; then
-      extpah="\$(phplibdir)"
-      lrpath="\$(EXTENSION_DIR)"
-      if test -z "$ld_runpath_switch"; then
-        translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$2.\$(SHLIB_SUFFIX_NAME) $[]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
-      else
-        translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$2.\$(SHLIB_SUFFIX_NAME) $ld_runpath_switch$lrpath $[]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
-      fi
-    else
-      if test "$PHP_PECL_EXTENSION" = "$1"; then
-        if test -x "$PHP_EXECUTABLE"; then
-          grepext=`$PHP_EXECUTABLE -m | $EGREP ^$extname\$`
-          if test "$grepext" = "$1"; then
-            extpath=`$PHP_EXECUTABLE -i | $AWK '/extension_dir/ {print$3}'`
-            if -z "$ld_runpath_switch"; then
-              translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$2.\$(SHLIB_SUFFIX_NAME) $[]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
-            else
-              translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$extpath/$2.\$(SHLIB_SUFFIX_NAME) $ld_runpath_switch$extpath $[]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
-            fi
-          fi
-        fi
+      dnl dependency is configured to be built shared
+      translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,[\$](phplibdir)/$depname $ld_runpath_switch[\$](EXTENSION_DIR) [$]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
+    elif test "$PHP_PECL_EXTENSION" = "$1"; then
+      dnl PECL build
+      if test -e "$EXTENSION_DIR/$depname"; then
+        translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]="-Wl,$EXTENSION_DIR/$depname $ld_runpath_switch$EXTENSION_DIR [$]translit($1,a-z_-,A-Z__)[_SHARED_LIBADD]"
       fi
     fi
   fi
