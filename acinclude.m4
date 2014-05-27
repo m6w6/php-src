@@ -1019,15 +1019,13 @@ AC_DEFUN([PHP_WITH_SHARED],[
 ])
 
 dnl
-dnl PHP_ADD_EXTENSION_DEP(extname, depends [, depconf[, link]])
+dnl PHP_ADD_EXTENSION_DEP(extname, depends [, depconf])
 dnl
 dnl This macro is scanned by genif.sh when it builds the internal functions
 dnl list, so that modules can be init'd in the correct order
 dnl $1 = name of extension, $2 = extension upon which it depends
 dnl $3 = optional: if true, it's ok for $2 to have not been configured
 dnl default is false and should halt the build.
-dnl $4 = optional: link $1 with $2 so it can actually be loaded and checked
-dnl for dependencies at load time.
 dnl To be effective, this macro must be invoked *after* PHP_NEW_EXTENSION.
 dnl The extension on which it depends must also have been configured.
 dnl See ADD_EXTENSION_DEP in win32 build 
