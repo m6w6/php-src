@@ -21,28 +21,6 @@
 #include "ext/standard/info.h"
 #include "php_raphf.h"
 
-#ifndef PHP_RAPHF_TEST
-#	define PHP_RAPHF_TEST 0
-#endif
-
-struct php_persistent_handle_globals {
-	ulong limit;
-	HashTable hash;
-};
-
-ZEND_BEGIN_MODULE_GLOBALS(raphf)
-	struct php_persistent_handle_globals persistent_handle;
-ZEND_END_MODULE_GLOBALS(raphf)
-
-#ifdef ZTS
-#	define PHP_RAPHF_G ((zend_raphf_globals *) \
-		(*((void ***) tsrm_get_ls_cache()))[TSRM_UNSHUFFLE_RSRC_ID(raphf_globals_id)])
-#else
-#	define PHP_RAPHF_G (&raphf_globals)
-#endif
-
-ZEND_DECLARE_MODULE_GLOBALS(raphf)
-
 #ifndef PHP_RAPHF_DEBUG_PHANDLES
 #	define PHP_RAPHF_DEBUG_PHANDLES 0
 #endif
@@ -312,7 +290,7 @@ ZEND_RESULT_CODE php_persistent_handle_provide(zend_string *name,
 			} else {
 				ns = zend_string_dup(name, 1);
 			}
-			rv = zend_symtable_update(&PHP_RAPHF_G->persistent_handle.hash, ns, &p);
+			rv = zend_symtable_update(&PG(persistent_handle_hash), ns, &p);
 			if (ns != name) {
 				zend_string_release(ns);
 			}
@@ -333,7 +311,7 @@ php_persistent_handle_factory_t *php_persistent_handle_concede(
 		php_persistent_handle_wakeup_t wakeup,
 		php_persistent_handle_retire_t retire)
 {
-	zval *zprovider = zend_symtable_find(&PHP_RAPHF_G->persistent_handle.hash, name);
+	zval *zprovider = zend_symtable_find(&PG(persistent_handle_hash), name);
 
 	if (zprovider) {
 		zend_bool free_a = 0;
@@ -432,7 +410,7 @@ void php_persistent_handle_release(php_persistent_handle_factory_t *a, void *han
 
 	list = php_persistent_handle_list_find(a->provider, a->ident);
 	if (list) {
-		if (a->provider->list.used >= PHP_RAPHF_G->persistent_handle.limit) {
+		if (a->provider->list.used >= PG(persistent_handle_limit)) {
 #if PHP_RAPHF_DEBUG_PHANDLES
 			fprintf(stderr, "DESTROY: %p\n", handle);
 #endif
@@ -455,7 +433,7 @@ void php_persistent_handle_cleanup(zend_string *name, zend_string *ident)
 	php_persistent_handle_list_t *list;
 
 	if (name) {
-		zval *zprovider = zend_symtable_find(&PHP_RAPHF_G->persistent_handle.hash,
+		zval *zprovider = zend_symtable_find(&PG(persistent_handle_hash),
 				name);
 
 		if (zprovider && (provider = Z_PTR_P(zprovider))) {
@@ -474,20 +452,20 @@ void php_persistent_handle_cleanup(zend_string *name, zend_string *ident)
 		}
 	} else {
 		zend_hash_apply_with_arguments(
-				&PHP_RAPHF_G->persistent_handle.hash,
+				&PG(persistent_handle_hash),
 				php_persistent_handle_apply_cleanup_all, 1, ident);
 	}
 }
 
 HashTable *php_persistent_handle_statall(HashTable *ht)
 {
-	if (zend_hash_num_elements(&PHP_RAPHF_G->persistent_handle.hash)) {
+	if (zend_hash_num_elements(&PG(persistent_handle_hash))) {
 		if (!ht) {
 			ALLOC_HASHTABLE(ht);
 			zend_hash_init(ht, 0, NULL, ZVAL_PTR_DTOR, 0);
 		}
 		zend_hash_apply_with_arguments(
-				&PHP_RAPHF_G->persistent_handle.hash,
+				&PG(persistent_handle_hash),
 				php_persistent_handle_apply_statall, 1, ht);
 	} else if (ht) {
 		ht = NULL;
@@ -507,102 +485,26 @@ php_resource_factory_ops_t *php_persistent_handle_get_resource_factory_ops(void)
 	return &php_persistent_handle_resource_factory_ops;
 }
 
-ZEND_BEGIN_ARG_INFO_EX(ai_raphf_stat_persistent_handles, 0, 0, 0)
-ZEND_END_ARG_INFO();
-static PHP_FUNCTION(raphf_stat_persistent_handles)
-{
-	if (SUCCESS == zend_parse_parameters_none()) {
-		object_init(return_value);
-		if (php_persistent_handle_statall(HASH_OF(return_value))) {
-			return;
-		}
-		zval_dtor(return_value);
-	}
-	RETURN_FALSE;
-}
-
-ZEND_BEGIN_ARG_INFO_EX(ai_raphf_clean_persistent_handles, 0, 0, 0)
-	ZEND_ARG_INFO(0, name)
-	ZEND_ARG_INFO(0, ident)
-ZEND_END_ARG_INFO();
-static PHP_FUNCTION(raphf_clean_persistent_handles)
-{
-	zend_string *name = NULL, *ident = NULL;
-
-	if (SUCCESS == zend_parse_parameters(ZEND_NUM_ARGS(), "|S!S!", &name, &ident)) {
-		php_persistent_handle_cleanup(name, ident);
-	}
-}
-
-#if PHP_RAPHF_TEST
-#	include "php_raphf_test.c"
-#endif
-
-static const zend_function_entry raphf_functions[] = {
-	ZEND_NS_FENTRY("raphf", stat_persistent_handles,
-			ZEND_FN(raphf_stat_persistent_handles),
-			ai_raphf_stat_persistent_handles, 0)
-	ZEND_NS_FENTRY("raphf", clean_persistent_handles,
-			ZEND_FN(raphf_clean_persistent_handles),
-			ai_raphf_clean_persistent_handles, 0)
-#if PHP_RAPHF_TEST
-	ZEND_NS_FENTRY("raphf", provide, ZEND_FN(raphf_provide), NULL, 0)
-	ZEND_NS_FENTRY("raphf", conceal, ZEND_FN(raphf_conceal), NULL, 0)
-	ZEND_NS_FENTRY("raphf", concede, ZEND_FN(raphf_concede), NULL, 0)
-	ZEND_NS_FENTRY("raphf", dispute, ZEND_FN(raphf_dispute), NULL, 0)
-	ZEND_NS_FENTRY("raphf", handle_ctor, ZEND_FN(raphf_handle_ctor), NULL, 0)
-	ZEND_NS_FENTRY("raphf", handle_copy, ZEND_FN(raphf_handle_copy), NULL, 0)
-	ZEND_NS_FENTRY("raphf", handle_dtor, ZEND_FN(raphf_handle_dtor), NULL, 0)
-#endif
-	{0}
-};
-
-PHP_INI_BEGIN()
-	STD_PHP_INI_ENTRY("raphf.persistent_handle.limit", "-1", PHP_INI_SYSTEM,
-			OnUpdateLong, persistent_handle.limit, zend_raphf_globals,
-			raphf_globals)
-PHP_INI_END()
-
 static HashTable *php_persistent_handles_global_hash;
 
-static PHP_GINIT_FUNCTION(raphf)
+void php_persistent_handles_startup(void)
 {
-	raphf_globals->persistent_handle.limit = -1;
+	PG(persistent_handle_limit) = -1;
 
-	zend_hash_init(&raphf_globals->persistent_handle.hash, 0, NULL,
+	zend_hash_init(&PG(persistent_handle_hash), 0, NULL,
 			php_persistent_handle_hash_dtor, 1);
 	if (php_persistent_handles_global_hash) {
-		zend_hash_copy(&raphf_globals->persistent_handle.hash,
+		zend_hash_copy(&PG(persistent_handle_hash),
 				php_persistent_handles_global_hash, NULL);
+	} else {
+		php_persistent_handles_global_hash = &PG(persistent_handle_hash);
 	}
 }
 
-static PHP_GSHUTDOWN_FUNCTION(raphf)
+void php_persistent_handles_shutdown(void)
 {
-	zend_hash_destroy(&raphf_globals->persistent_handle.hash);
-}
-
-PHP_MINIT_FUNCTION(raphf)
-{
-	php_persistent_handles_global_hash = &PHP_RAPHF_G->persistent_handle.hash;
-
-#if PHP_RAPHF_TEST
-	PHP_MINIT(raphf_test)(INIT_FUNC_ARGS_PASSTHRU);
-#endif
-
-	REGISTER_INI_ENTRIES();
-	return SUCCESS;
-}
-
-PHP_MSHUTDOWN_FUNCTION(raphf)
-{
-#if PHP_RAPHF_TEST
-	PHP_MSHUTDOWN(raphf_test)(SHUTDOWN_FUNC_ARGS_PASSTHRU);
-#endif
-
-	UNREGISTER_INI_ENTRIES();
+	zend_hash_destroy(&PG(persistent_handle_hash));
 	php_persistent_handles_global_hash = NULL;
-	return SUCCESS;
 }
 
 static int php_persistent_handle_apply_info_ex(zval *p, int argc,
@@ -631,52 +533,16 @@ static int php_persistent_handle_apply_info(zval *p, int argc,
 	return ZEND_HASH_APPLY_KEEP;
 }
 
-PHP_MINFO_FUNCTION(raphf)
+void php_persistent_handles_info_print(void)
 {
 	php_info_print_table_start();
-	php_info_print_table_header(2,
-			"Resource and persistent handle factory support", "enabled");
-	php_info_print_table_row(2, "Extension version", PHP_RAPHF_VERSION);
-	php_info_print_table_end();
-
-	php_info_print_table_start();
-	php_info_print_table_colspan_header(4, "Persistent handles in this "
-#ifdef ZTS
-			"thread"
-#else
-			"process"
-#endif
-	);
+	php_info_print_table_colspan_header(4, "Persistent handles");
 	php_info_print_table_header(4, "Provider", "Ident", "Used", "Free");
 	zend_hash_apply_with_arguments(
-			&PHP_RAPHF_G->persistent_handle.hash,
+			&PG(persistent_handle_hash),
 			php_persistent_handle_apply_info, 0);
 	php_info_print_table_end();
-
-	DISPLAY_INI_ENTRIES();
 }
-
-zend_module_entry raphf_module_entry = {
-	STANDARD_MODULE_HEADER,
-	"raphf",
-	raphf_functions,
-	PHP_MINIT(raphf),
-	PHP_MSHUTDOWN(raphf),
-	NULL,
-	NULL,
-	PHP_MINFO(raphf),
-	PHP_RAPHF_VERSION,
-	ZEND_MODULE_GLOBALS(raphf),
-	PHP_GINIT(raphf),
-	PHP_GSHUTDOWN(raphf),
-	NULL,
-	STANDARD_MODULE_PROPERTIES_EX
-};
-/* }}} */
-
-#ifdef COMPILE_DL_RAPHF
-ZEND_GET_MODULE(raphf)
-#endif
 
 /*
  * Local variables:

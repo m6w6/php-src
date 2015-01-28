@@ -19,6 +19,12 @@
 #ifndef PHP_RAPHF_H
 #define PHP_RAPHF_H
 
+#ifndef DOXYGEN
+extern void php_persistent_handles_info_print(void);
+extern void php_persistent_handles_startup(void);
+extern void php_persistent_handles_shutdown(void);
+#endif /* DOXYGEN */
+
 #define PHP_RAPHF_API PHPAPI
 
 /**

@@ -2652,6 +2652,14 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_version_compare, 0, 0, 2)
 	ZEND_ARG_INFO(0, oper)
 ZEND_END_ARG_INFO()
 /* }}} */
+/* {{{ main/php_raphf.c */
+ZEND_BEGIN_ARG_INFO_EX(arginfo_persistent_handles_stat, 0, 0, 0)
+ZEND_END_ARG_INFO();
+ZEND_BEGIN_ARG_INFO_EX(arginfo_persistent_handles_clean, 0, 0, 0)
+	ZEND_ARG_INFO(0, name)
+	ZEND_ARG_INFO(0, ident)
+ZEND_END_ARG_INFO();
+/* }}} */
 /* }}} */
 
 const zend_function_entry basic_functions[] = { /* {{{ */
@@ -3342,6 +3350,11 @@ const zend_function_entry basic_functions[] = { /* {{{ */
 	PHP_FE(output_reset_rewrite_vars,										arginfo_output_reset_rewrite_vars)
 
 	PHP_FE(sys_get_temp_dir,												arginfo_sys_get_temp_dir)
+
+	/* main/php_raphf.c */
+	PHP_FE(persistent_handles_stat,											arginfo_persistent_handles_stat)
+	PHP_FE(persistent_handles_clean,										arginfo_persistent_handles_clean)
+
 
 	PHP_FE_END
 };
@@ -5932,6 +5945,27 @@ PHP_FUNCTION(sys_getloadavg)
 }
 /* }}} */
 #endif
+
+PHP_FUNCTION(persistent_handles_stat)
+{
+	if (SUCCESS == zend_parse_parameters_none()) {
+		object_init(return_value);
+		if (php_persistent_handle_statall(HASH_OF(return_value))) {
+			return;
+		}
+		zval_dtor(return_value);
+	}
+	RETURN_FALSE;
+}
+
+PHP_FUNCTION(persistent_handles_clean)
+{
+	zend_string *name = NULL, *ident = NULL;
+
+	if (SUCCESS == zend_parse_parameters(ZEND_NUM_ARGS(), "|S!S!", &name, &ident)) {
+		php_persistent_handle_cleanup(name, ident);
+	}
+}
 
 /*
  * Local variables:

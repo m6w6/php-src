@@ -922,6 +922,9 @@ PHPAPI void php_print_info(int flag)
 		php_info_print_table_end();
 	}
 
+	SECTION("Persistent Handles")
+	php_persistent_handles_info_print();
+
 
 	if ((flag & PHP_INFO_CREDITS) && !sapi_module.phpinfo_as_text) {
 		php_info_print_hr();

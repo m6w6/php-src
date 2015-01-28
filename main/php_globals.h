@@ -166,6 +166,9 @@ struct _php_core_globals {
 #ifdef PHP_WIN32
 	zend_bool windows_show_crt_warning;
 #endif
+
+	zend_long persistent_handle_limit;
+	HashTable persistent_handle_hash;
 };
 
 

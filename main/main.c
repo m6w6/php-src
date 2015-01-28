@@ -615,6 +615,7 @@ PHP_INI_BEGIN()
 #ifdef PHP_WIN32
 	STD_PHP_INI_BOOLEAN("windows.show_crt_warning",		"0",		PHP_INI_ALL,		OnUpdateBool,			windows_show_crt_warning,			php_core_globals,	core_globals)
 #endif
+	STD_PHP_INI_ENTRY("persistent_handle_limit", "-1",		PHP_INI_SYSTEM,		OnUpdateLong,		persistent_handle_limit, php_core_globals,		core_globals)
 PHP_INI_END()
 /* }}} */
 
@@ -2227,6 +2228,8 @@ int php_module_startup(sapi_module_struct *sf, zend_module_entry *additional_mod
 	php_output_register_constants();
 	php_rfc1867_register_constants();
 
+	php_persistent_handles_startup();
+
 	/* this will read in php.ini, set up the configuration parameters,
 	   load zend extensions and register php function extensions
 	   to be loaded later */
@@ -2431,6 +2434,8 @@ void php_module_shutdown(void)
 	sapi_flush();
 
 	zend_shutdown();
+
+	php_persistent_handles_shutdown();
 
 	/* Destroys filter & transport registries too */
 	php_shutdown_stream_wrappers(module_number);
