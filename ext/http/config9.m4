@@ -381,62 +381,6 @@ dnl ----
 		fi
 	fi
 
-dnl ----
-dnl RAPHF
-dnl ----
-	HTTP_HAVE_PHP_EXT([raphf], [
-		AC_MSG_CHECKING([for php_raphf.h])
-		HTTP_EXT_RAPHF_INCDIR=
-		for i in `echo $INCLUDES | $SED -e's/-I//g'` $abs_srcdir ../raphf; do
-			if test -d $i; then
-				if test -f $i/php_raphf.h; then
-					HTTP_EXT_RAPHF_INCDIR=$i
-					break
-				elif test -f $i/ext/raphf/php_raphf.h; then
-					HTTP_EXT_RAPHF_INCDIR=$i/ext/raphf
-					break
-				fi
-			fi
-		done
-		if test "x$HTTP_EXT_RAPHF_INCDIR" = "x"; then
-			AC_MSG_ERROR([not found])
-		else
-			AC_MSG_RESULT([$HTTP_EXT_RAPHF_INCDIR])
-			AC_DEFINE([PHP_HTTP_HAVE_PHP_RAPHF_H], [1], [Have ext/raphf support])
-			PHP_ADD_INCLUDE([$HTTP_EXT_RAPHF_INCDIR])
-		fi
-	], [
-		AC_MSG_ERROR([Please install pecl/raphf and activate extension=raphf.$SHLIB_DL_SUFFIX_NAME in your php.ini])
-	])
-
-dnl ----
-dnl PROPRO
-dnl ----
-	HTTP_HAVE_PHP_EXT([propro], [
-		AC_MSG_CHECKING([for php_propro.h])
-		HTTP_EXT_PROPRO_INCDIR=
-		for i in `echo $INCLUDES | $SED -e's/-I//g'` $abs_srcdir ../propro; do
-			if test -d $i; then
-				if test -f $i/php_propro.h; then
-					HTTP_EXT_PROPRO_INCDIR=$i
-					break
-				elif test -f $i/ext/propro/php_propro.h; then
-					HTTP_EXT_PROPRO_INCDIR=$i/ext/propro
-					break
-				fi
-			fi
-		done
-		if test "x$HTTP_EXT_PROPRO_INCDIR" = "x"; then
-			AC_MSG_ERROR([not found])
-		else
-			AC_MSG_RESULT([$HTTP_EXT_PROPRO_INCDIR])
-			AC_DEFINE([PHP_HTTP_HAVE_PHP_PROPRO_H], [1], [Have ext/propro support])
-			PHP_ADD_INCLUDE([$HTTP_EXT_PROPRO_INCDIR])
-		fi
-	], [
-		AC_MSG_ERROR([Please install pecl/propro and activate extension=propro.$SHLIB_DL_SUFFIX_NAME in your php.ini])
-	])
-
 PHP_ARG_WITH([http-shared-deps], [whether to depend on extensions which have been built shared],
 [  --without-http-shared-deps   HTTP: do not depend on extensions like hash
                                      and iconv (when they are built shared)], $PHP_HTTP, $PHP_HTTP)
@@ -518,10 +462,6 @@ dnl ----
 	HTTP_SHARED_DEP([hash])
 	HTTP_SHARED_DEP([iconv])
 	HTTP_SHARED_DEP([json])
-	
-	dnl extension deps
-	PHP_ADD_EXTENSION_DEP([http], [raphf], true)
-	PHP_ADD_EXTENSION_DEP([http], [propo], true)
 	
 	PHP_SUBST([HTTP_SHARED_LIBADD])
 

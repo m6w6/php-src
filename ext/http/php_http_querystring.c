@@ -12,12 +12,12 @@
 
 #include "php_http_api.h"
 
-#include <php_variables.h>
-#include <ext/spl/spl_array.h>
+#include "php_variables.h"
+#include "ext/spl/spl_array.h"
 
 #ifdef PHP_HTTP_HAVE_ICONV
 #	undef PHP_ATOM_INC
-#	include <ext/iconv/php_iconv.h>
+#	include "ext/iconv/php_iconv.h"
 #endif
 
 #define QS_MERGE 1

@@ -13,7 +13,7 @@
 #ifndef PHP_HTTP_URL_H
 #define PHP_HTTP_URL_H
 
-#include <ext/standard/url.h>
+#include "ext/standard/url.h"
 
 #define PHP_HTTP_URL_REPLACE		0x000
 #define PHP_HTTP_URL_JOIN_PATH		0x001

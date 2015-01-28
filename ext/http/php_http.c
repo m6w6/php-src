@@ -12,8 +12,8 @@
 
 #include "php_http_api.h"
 
-#include <php_ini.h>
-#include <ext/standard/info.h>
+#include "php_ini.h"
+#include "ext/standard/info.h"
 
 #include <zlib.h>
 
@@ -27,9 +27,6 @@
 #			include <event.h>
 #		endif
 #	endif
-#endif
-#if PHP_HTTP_HAVE_SERF
-#	include <serf.h>
 #endif
 
 ZEND_DECLARE_MODULE_GLOBALS(php_http);
@@ -49,8 +46,6 @@ PHP_RSHUTDOWN_FUNCTION(http);
 PHP_MINFO_FUNCTION(http);
 
 static zend_module_dep http_module_deps[] = {
-	ZEND_MOD_REQUIRED("raphf")
-	ZEND_MOD_REQUIRED("propro")
 	ZEND_MOD_REQUIRED("spl")
 #ifdef PHP_HTTP_HAVE_HASH
 	ZEND_MOD_REQUIRED("hash")

@@ -13,24 +13,17 @@
 #ifndef PHP_HTTP_API_H
 #define PHP_HTTP_API_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "php.h"
+#include "SAPI.h"
 
-#ifndef PHP_WIN32
-#include <php_config.h>
-#endif
-#include <php.h>
-#include <SAPI.h>
+#include "php_raphf.h"
+#include "ext/standard/php_propro.h"
+#include "ext/standard/php_string.h"
+#include "ext/spl/spl_iterators.h"
+#include "ext/date/php_date.h"
 
-#include <ext/raphf/php_raphf.h>
-#include <ext/propro/php_propro.h>
-#include <ext/standard/php_string.h>
-#include <ext/spl/spl_iterators.h>
-#include <ext/date/php_date.h>
-
-#include <zend_interfaces.h>
-#include <zend_exceptions.h>
+#include "zend_interfaces.h"
+#include "zend_exceptions.h"
 
 
 #ifdef PHP_WIN32
