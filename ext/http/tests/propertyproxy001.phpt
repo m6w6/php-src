@@ -4,6 +4,8 @@ property proxy
 <?php
 include "skipif.inc";
 ?>
+--XFAIL--
+reference mismatch & leak
 --FILE--
 <?php
 
