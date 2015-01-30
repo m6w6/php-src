@@ -36,6 +36,7 @@ php_http_object_t *php_http_object_new_ex(zend_class_entry *ce, void *intern)
 void php_http_object_free(zend_object *object)
 {
 	php_http_object_t *obj = PHP_HTTP_OBJ(object, NULL);
+	(void) obj;
 	zend_object_std_dtor(object);
 }
 

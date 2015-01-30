@@ -2094,7 +2094,6 @@ php_http_client_ops_t *php_http_client_curl_get_ops(void)
 PHP_MINIT_FUNCTION(http_client_curl)
 {
 	php_http_options_t *options;
-	php_http_client_driver_t driver;
 
 	PHP_HTTP_G->client.curl.driver.driver_name = zend_string_init(ZEND_STRL("curl"), 1);
 	PHP_HTTP_G->client.curl.driver.client_name = zend_string_init(ZEND_STRL("http\\Client\\Curl"), 1);
