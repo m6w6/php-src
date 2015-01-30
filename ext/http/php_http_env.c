@@ -936,53 +936,6 @@ static zend_function_entry php_http_env_methods[] = {
 	EMPTY_FUNCTION_ENTRY
 };
 
-#ifdef PHP_HTTP_HAVE_JSON
-#include "ext/json/php_json.h"
-
-static SAPI_POST_HANDLER_FUNC(php_http_json_post_handler)
-{
-	zval *zarg = arg;
-	zend_string *json = NULL;
-
-	if (SG(request_info).request_body) {
-		/* FG(stream_wrappers) not initialized yet, so we cannot use php://input */
-		php_stream_rewind(SG(request_info).request_body);
-		json = php_stream_copy_to_mem(SG(request_info).request_body, PHP_STREAM_COPY_ALL, 0);
-	}
-
-	if (json) {
-		if (json->len) {
-			zval tmp;
-
-			ZVAL_NULL(&tmp);
-			php_json_decode(&tmp, json->val, json->len, 1, PG(max_input_nesting_level));
-
-			if (Z_TYPE(tmp) == IS_ARRAY) {
-				array_copy(Z_ARRVAL(tmp), Z_ARRVAL_P(zarg));
-			}
-			zval_ptr_dtor(&tmp);
-		}
-		zend_string_release(json);
-	}
-}
-
-static void php_http_env_register_json_handler(void)
-{
-	sapi_post_entry entry = {NULL, 0, NULL, NULL};
-
-	entry.post_reader = sapi_read_standard_form_data;
-	entry.post_handler = php_http_json_post_handler;
-
-	entry.content_type = "text/json";
-	entry.content_type_len = lenof("text/json");
-	sapi_register_post_entry(&entry);
-
-	entry.content_type = "application/json";
-	entry.content_type_len = lenof("application/json");
-	sapi_register_post_entry(&entry);
-}
-#endif
-
 zend_class_entry *php_http_env_class_entry;
 
 PHP_MINIT_FUNCTION(http_env)
@@ -991,10 +944,6 @@ PHP_MINIT_FUNCTION(http_env)
 
 	INIT_NS_CLASS_ENTRY(ce, "http", "Env", php_http_env_methods);
 	php_http_env_class_entry = zend_register_internal_class(&ce);
-
-#ifdef PHP_HTTP_HAVE_JSON
-	php_http_env_register_json_handler();
-#endif
 
 	return SUCCESS;
 }
