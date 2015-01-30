@@ -86,10 +86,6 @@ if (PHP_HTTP != "no") {
 		ADD_EXTENSION_DEP("http", "session", true);
 	}
 	
-	if (PHP_ICONV != "no") {
-		ADD_EXTENSION_DEP("http", "iconv", true);
-	}
-	
 	if (PHP_CURL != "no") {
 		ADD_EXTENSION_DEP("http", "curl", true);
 	}

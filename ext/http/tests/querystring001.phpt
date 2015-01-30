@@ -51,11 +51,6 @@ foreach ($it as $k => $v) {
 printf("\nReplace a multi dimensional key:\n");
 printf("%s\n", $q2->mod(array("ma" => null))->set(array("ma" => array("l1" => false))));
 
-printf("\nXlate:\n");
-$qu = new http\QueryString("ü=ö");
-printf("utf8:   %s\n", $qu);
-printf("latin1: %s\n", method_exists($qu, "xlate") ? $qu->xlate("utf-8", "latin1") : "%FC=%F6");
-
 printf("\nOffsets:\n");
 var_dump($q2["ma"]);
 $q2["ma"] = array("bye");
@@ -149,10 +144,6 @@ ma: Array
 
 Replace a multi dimensional key:
 str=abc&num=-123&dec=123.123&bool=1&arr%5B0%5D=1&arr%5B1%5D=2&ma%5Bl1%5D=
-
-Xlate:
-utf8:   %C3%BC=%C3%B6
-latin1: %FC=%F6
 
 Offsets:
 array(2) {

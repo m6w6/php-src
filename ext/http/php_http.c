@@ -50,9 +50,6 @@ static zend_module_dep http_module_deps[] = {
 #ifdef PHP_HTTP_HAVE_HASH
 	ZEND_MOD_REQUIRED("hash")
 #endif
-#ifdef PHP_HTTP_HAVE_ICONV
-	ZEND_MOD_REQUIRED("iconv")
-#endif
 	{NULL, NULL, NULL, 0}
 };
 

@@ -15,11 +15,6 @@
 #include "php_variables.h"
 #include "ext/spl/spl_array.h"
 
-#ifdef PHP_HTTP_HAVE_ICONV
-#	undef PHP_ATOM_INC
-#	include "ext/iconv/php_iconv.h"
-#endif
-
 #define QS_MERGE 1
 
 static inline void php_http_querystring_set(zval *instance, zval *params, int flags)
@@ -82,62 +77,6 @@ static inline void php_http_querystring_get(zval *instance, int type, char *name
 		RETURN_ZVAL_FAST(defval);
 	}
 }
-
-#ifdef PHP_HTTP_HAVE_ICONV
-ZEND_RESULT_CODE php_http_querystring_xlate(zval *dst, zval *src, const char *ie, const char *oe)
-{
-	zval *entry;
-	zend_string *xkey, *xstr;
-	php_http_arrkey_t key;
-	
-	ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL_P(src), key.h, key.key, entry)
-	{
-		if (key.key) {
-			if (PHP_ICONV_ERR_SUCCESS != php_iconv_string(key.key->val, key.key->len, &xkey, oe, ie)) {
-				php_error_docref(NULL, E_WARNING, "Failed to convert '%.*s' from '%s' to '%s'", key.key->len, key.key->val, ie, oe);
-				return FAILURE;
-			}
-		}
-		
-		if (Z_TYPE_P(entry) == IS_STRING) {
-			if (PHP_ICONV_ERR_SUCCESS != php_iconv_string(Z_STRVAL_P(entry), Z_STRLEN_P(entry), &xstr, oe, ie)) {
-				if (key.key) {
-					zend_string_release(xkey);
-				}
-				php_error_docref(NULL, E_WARNING, "Failed to convert '%.*s' from '%s' to '%s'", Z_STRLEN_P(entry), Z_STRVAL_P(entry), ie, oe);
-				return FAILURE;
-			}
-			if (key.key) {
-				add_assoc_str_ex(dst, xkey->val, xkey->len, xstr);
-			} else {
-				add_index_str(dst, key.h, xstr);
-			}
-		} else if (Z_TYPE_P(entry) == IS_ARRAY) {
-			zval subarray;
-			
-			array_init(&subarray);
-			if (key.key) {
-				add_assoc_zval_ex(dst, xkey->val, xkey->len, &subarray);
-			} else {
-				add_index_zval(dst, key.h, &subarray);
-			}
-			if (SUCCESS != php_http_querystring_xlate(&subarray, entry, ie, oe)) {
-				if (key.key) {
-					zend_string_release(xkey);
-				}
-				return FAILURE;
-			}
-		}
-		
-		if (key.key) {
-			zend_string_release(xkey);
-		}
-	}
-	ZEND_HASH_FOREACH_END();
-
-	return SUCCESS;
-}
-#endif /* HAVE_ICONV */
 
 ZEND_RESULT_CODE php_http_querystring_ctor(zval *instance, zval *params)
 {
@@ -505,36 +444,6 @@ PHP_HTTP_QUERYSTRING_GETTER(getString, IS_STRING);
 PHP_HTTP_QUERYSTRING_GETTER(getArray, IS_ARRAY);
 PHP_HTTP_QUERYSTRING_GETTER(getObject, IS_OBJECT);
 
-#ifdef PHP_HTTP_HAVE_ICONV
-ZEND_BEGIN_ARG_INFO_EX(ai_HttpQueryString_xlate, 0, 0, 2)
-	ZEND_ARG_INFO(0, from_encoding)
-	ZEND_ARG_INFO(0, to_encoding)
-ZEND_END_ARG_INFO();
-PHP_METHOD(HttpQueryString, xlate)
-{
-	char *ie, *oe;
-	size_t ie_len, oe_len;
-	zval na, qa_tmp, *qa;
-
-	php_http_expect(SUCCESS == zend_parse_parameters(ZEND_NUM_ARGS(), "ss", &ie, &ie_len, &oe, &oe_len), invalid_arg, return);
-
-	array_init(&na);
-	qa = zend_read_property(php_http_querystring_class_entry, getThis(), ZEND_STRL("queryArray"), 0, &qa_tmp);
-	ZVAL_DEREF(qa);
-	convert_to_array(qa);
-
-	php_http_expect(SUCCESS == php_http_querystring_xlate(&na, qa, ie, oe), bad_conversion,
-			zval_ptr_dtor(&na);
-			return;
-	);
-
-	php_http_querystring_set(getThis(), &na, 0);
-	RETVAL_ZVAL_FAST(getThis());
-	
-	zval_ptr_dtor(&na);
-}
-#endif /* HAVE_ICONV */
-
 ZEND_BEGIN_ARG_INFO_EX(ai_HttpQueryString_serialize, 0, 0, 0)
 ZEND_END_ARG_INFO();
 PHP_METHOD(HttpQueryString, serialize)
@@ -670,9 +579,6 @@ static zend_function_entry php_http_querystring_methods[] = {
 	PHP_ME(HttpQueryString, getIterator, ai_HttpQueryString_getIterator, ZEND_ACC_PUBLIC)
 
 	PHP_ME(HttpQueryString, getGlobalInstance, ai_HttpQueryString_getGlobalInstance, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-#ifdef PHP_HTTP_HAVE_ICONV
-	PHP_ME(HttpQueryString, xlate, ai_HttpQueryString_xlate, ZEND_ACC_PUBLIC)
-#endif
 
 	/* Implements Serializable */
 	PHP_ME(HttpQueryString, serialize, ai_HttpQueryString_serialize, ZEND_ACC_PUBLIC)

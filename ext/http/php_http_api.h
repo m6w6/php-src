@@ -34,10 +34,6 @@
 # define PHP_HTTP_API extern
 #endif
 
-#if (defined(HAVE_ICONV) || defined(PHP_HTTP_HAVE_EXT_ICONV)) && (PHP_HTTP_SHARED_DEPS || !defined(COMPILE_DL_ICONV))
-#	define PHP_HTTP_HAVE_ICONV
-#endif
-
 #if (defined(HAVE_HASH_EXT) || defined(PHP_HTTP_HAVE_EXT_HASH)) && (PHP_HTTP_SHARED_DEPS || !defined(COMPILE_DL_HASH)) && defined(PHP_HTTP_HAVE_PHP_HASH_H)
 #	define PHP_HTTP_HAVE_HASH
 #endif
