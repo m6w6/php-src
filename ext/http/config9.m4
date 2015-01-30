@@ -1,5 +1,4 @@
 dnl config.m4 for pecl/http
-dnl $Id: config9.m4 242664 2007-09-18 19:13:37Z mike $
 dnl vim: noet ts=4 sw=4
 
 PHP_ARG_WITH([http], [whether to enable extended HTTP support],
@@ -34,66 +33,6 @@ if test "$PHP_HTTP" != "no"; then
 	
 	AC_PROG_CPP
 	
-	if test "$PHP_HTTP_SHARED_DEPS" != "no"; then
-		AC_DEFINE([PHP_HTTP_SHARED_DEPS], [1], [ ])
-	else
-		AC_DEFINE([PHP_HTTP_SHARED_DEPS], [0], [ ])
-	fi
-	
-	dnl
-	dnl HTTP_SHARED_DEP(name[, code-if-yes[, code-if-not]])
-	dnl
-	AC_DEFUN([HTTP_SHARED_DEP], [
-		extname=$1
-		haveext=$[PHP_HTTP_HAVE_EXT_]translit($1,a-z_-,A-Z__)
-		
-		AC_MSG_CHECKING([whether to add a dependency on ext/$extname])
-		if test "$PHP_HTTP_SHARED_DEPS" = "no"; then
-			AC_MSG_RESULT([no])
-			$3
-		elif test "$haveext"; then
-			AC_MSG_RESULT([yes])
-			AC_DEFINE([PHP_HTTP_HAVE_EXT_]translit($1,a-z_-,A-Z__), [1], [ ])
-			ifdef([PHP_ADD_EXTENSION_DEP], [
-				PHP_ADD_EXTENSION_DEP([http], $1, true)
-			])
-			$2
-		else
-			AC_MSG_RESULT([no])
-			$3
-		fi
-	])
-	
-	dnl
-	dnl HTTP_HAVE_PHP_EXT(name[, code-if-yes[, code-if-not]])
-	dnl
-	AC_DEFUN([HTTP_HAVE_PHP_EXT], [
-		extname=$1
-		haveext=$[PHP_]translit($1,a-z_-,A-Z__)
-		AC_MSG_CHECKING([for ext/$extname support])
-		if test -x "$PHP_EXECUTABLE"; then
-			grepext=`$PHP_EXECUTABLE -m | $EGREP ^$extname\$`
-			if test "$grepext" = "$extname"; then
-				[PHP_HTTP_HAVE_EXT_]translit($1,a-z_-,A-Z__)=1
-				AC_MSG_RESULT([yes])
-				$2
-			else
-				[PHP_HTTP_HAVE_EXT_]translit($1,a-z_-,A-Z__)=
-				AC_MSG_RESULT([no])
-				$3
-			fi
-		elif test "$haveext" != "no" && test "x$haveext" != "x"; then
-			[PHP_HTTP_HAVE_EXT_]translit($1,a-z_-,A-Z__)=1
-			AC_MSG_RESULT([yes])
-			$2
-		else
-			[PHP_HTTP_HAVE_EXT_]translit($1,a-z_-,A-Z__)=
-			AC_MSG_RESULT([no])
-			$3
-		fi
-	])
-	
-
 dnl ----
 dnl STDC
 dnl ----
