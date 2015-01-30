@@ -145,6 +145,36 @@ PHP X.Y UPGRADE NOTES
 7. New Classes and Interfaces
 ========================================
 
+- HTTP:
+  . http\Client
+  . http\Client\Request
+  . http\Client\Response
+  . http\Cookie
+  . http\Encoding\Stream
+  . http\Encoding\Stream\Dechunk
+  . http\Encoding\Stream\Deflate
+  . http\Encoding\Stream\Inflate
+  . http\Env
+  . http\Env\Request
+  . http\Env\Response
+  . http\Exception
+  . http\Exception\BadConversionException
+  . http\Exception\BadHeaderException
+  . http\Exception\BadMessageException
+  . http\Exception\BadMethodCallException
+  . http\Exception\BadQueryStringException
+  . http\Exception\BadUrlException
+  . http\Exception\InvalidArgumentException
+  . http\Exception\RuntimeException
+  . http\Exception\UnexpectedValueException
+  . http\Header
+  . http\Message
+  . http\Message\Body
+  . http\Message\Parser
+  . http\Params
+  . http\QueryString
+  . http\Url
+
 
 ========================================
 8. Removed Extensions
