@@ -1393,6 +1393,7 @@ static zval *php_http_curle_get_option(php_http_option_t *opt, HashTable *option
 	zval *option;
 
 	if ((option = php_http_option_get(opt, options, NULL))) {
+		Z_TRY_ADDREF_P(option);
 		convert_to_explicit_type_ex(option, opt->type);
 		zend_hash_update(&curl->options.cache, opt->name, option);
 	}
