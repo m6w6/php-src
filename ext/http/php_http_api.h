@@ -34,10 +34,6 @@
 # define PHP_HTTP_API extern
 #endif
 
-#if (defined(HAVE_HASH_EXT) || defined(PHP_HTTP_HAVE_EXT_HASH)) && (PHP_HTTP_SHARED_DEPS || !defined(COMPILE_DL_HASH)) && defined(PHP_HTTP_HAVE_PHP_HASH_H)
-#	define PHP_HTTP_HAVE_HASH
-#endif
-
 #ifdef PHP_WIN32
 #	define CURL_STATICLIB
 #	include <winsock2.h>
@@ -73,7 +69,6 @@
 #include "php_http_env.h"
 #include "php_http_env_request.h"
 #include "php_http_env_response.h"
-#include "php_http_etag.h"
 #include "php_http_exception.h"
 #include "php_http_filter.h"
 #include "php_http_header_parser.h"

@@ -106,15 +106,10 @@ static inline void php_http_globals_free(zend_php_http_globals *G TSRMLS_DC)
 }
 #endif
 
-PHP_INI_BEGIN()
-	STD_PHP_INI_ENTRY("http.etag.mode", "crc32b", PHP_INI_ALL, OnUpdateString, env.etag_mode, zend_php_http_globals, php_http_globals)
-PHP_INI_END()
-
 PHP_MINIT_FUNCTION(http)
 {
 	http_module_number = module_number;
 	ZEND_INIT_MODULE_GLOBALS(php_http, php_http_globals_init_once, NULL);
-	REGISTER_INI_ENTRIES();
 	
 	if (0
 	|| SUCCESS != PHP_MINIT_CALL(http_object)
@@ -150,8 +145,6 @@ PHP_MINIT_FUNCTION(http)
 
 PHP_MSHUTDOWN_FUNCTION(http)
 {
-	UNREGISTER_INI_ENTRIES();
-	
 	if (0
 	|| SUCCESS != PHP_MSHUTDOWN_CALL(http_message)
 #if PHP_HTTP_HAVE_CURL

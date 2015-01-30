@@ -24,6 +24,6 @@ $r->send();
 --EXPECTHEADERS--
 Accept-Ranges: bytes
 Cache-Control: public,must-revalidate,max-age=0
-ETag: "9ef61f95"
+ETag: "8843d7f92416211de9ebb963ff4ce28125932878"
 --EXPECTF--
 foobar

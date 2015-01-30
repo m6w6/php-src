@@ -13,6 +13,7 @@
 #include "php_http_api.h"
 
 #include "ext/standard/php_lcg.h"
+#include "ext/standard/sha1.h"
 
 #define BOUNDARY_OPEN(body) \
 	do {\
@@ -119,6 +120,22 @@ const char *php_http_message_body_boundary(php_http_message_body_t *body)
 	return body->boundary;
 }
 
+static inline char *etag_sha_digest(const unsigned char *digest)
+{
+	static const char hexdigits[] = "0123456789abcdef";
+	char *hex = emalloc(41);
+	char *ptr = hex;
+
+	PHP_HTTP_DUFF(20,
+		*ptr++ = hexdigits[*digest >> 4];
+		*ptr++ = hexdigits[*digest & 0xF];
+		++digest;
+	);
+	*ptr = '\0';
+
+	return hex;
+}
+
 char *php_http_message_body_etag(php_http_message_body_t *body)
 {
 	const php_stream_statbuf *ssb = php_http_message_body_stat(body);
@@ -130,14 +147,14 @@ char *php_http_message_body_etag(php_http_message_body_t *body)
 		spprintf(&etag, 0, "%lx-%lx-%lx", ssb->sb.st_ino, ssb->sb.st_mtime, ssb->sb.st_size);
 		return etag;
 	} else {
-		php_http_etag_t *etag = php_http_etag_init(PHP_HTTP_G->env.etag_mode);
+		unsigned char digest[20];
+		PHP_SHA1_CTX sha;
 
-		if (etag) {
-			php_http_message_body_to_callback(body, (php_http_pass_callback_t) php_http_etag_update, etag, 0, 0);
-			return php_http_etag_finish(etag);
-		} else {
-			return NULL;
-		}
+		PHP_SHA1Init(&sha);
+		php_http_message_body_to_callback(body, (php_http_pass_callback_t) PHP_SHA1Update, &sha, 0, 0);
+		PHP_SHA1Final(digest, &sha);
+
+		return etag_sha_digest(digest);
 	}
 }
 

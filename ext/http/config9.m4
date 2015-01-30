@@ -111,7 +111,6 @@ dnl ----
 dnl ----
 dnl IDN
 dnl ----
-
 	AC_MSG_CHECKING([for idna.h])
 	IDNA_DIR=
 	for i in "$PHP_HTTP_LIBIDN_DIR" "$IDN_DIR" /usr/local /usr /opt; do
@@ -381,35 +380,6 @@ dnl ----
 		fi
 	fi
 
-PHP_ARG_WITH([http-shared-deps], [whether to depend on extensions which have been built shared],
-[  --without-http-shared-deps   HTTP: do not depend on extensions like hash
-                                     and iconv (when they are built shared)], $PHP_HTTP, $PHP_HTTP)
-dnl ----
-dnl HASH
-dnl ----
-	HTTP_HAVE_PHP_EXT([hash], [
-		AC_MSG_CHECKING([for php_hash.h])
-		HTTP_EXT_HASH_INCDIR=
-		for i in `echo $INCLUDES | $SED -e's/-I//g'` $abs_srcdir ../hash; do
-			if test -d $i; then
-				if test -f $i/php_hash.h; then
-					HTTP_EXT_HASH_INCDIR=$i
-					break
-				elif test -f $i/ext/hash/php_hash.h; then
-					HTTP_EXT_HASH_INCDIR=$i/ext/hash
-					break
-				fi
-			fi
-		done
-		if test "x$HTTP_EXT_HASH_INCDIR" = "x"; then
-			AC_MSG_RESULT([not found])
-		else
-			AC_MSG_RESULT([$HTTP_EXT_HASH_INCDIR])
-			AC_DEFINE([PHP_HTTP_HAVE_PHP_HASH_H], [1], [Have ext/hash support])
-			PHP_ADD_INCLUDE([$HTTP_EXT_HASH_INCDIR])
-		fi
-	])
-
 dnl ----
 dnl DONE
 dnl ----
@@ -426,7 +396,6 @@ dnl ----
 		php_http_env.c \
 		php_http_env_request.c \
 		php_http_env_response.c \
-		php_http_etag.c \
 		php_http_exception.c \
 		php_http_filter.c \
 		php_http_header_parser.c \
@@ -446,9 +415,6 @@ dnl ----
 		php_http_version.c \
 	"
 	PHP_NEW_EXTENSION([http], $PHP_HTTP_SOURCES, $ext_shared)
-	
-	dnl shared extension deps
-	HTTP_SHARED_DEP([hash])
 	
 	PHP_SUBST([HTTP_SHARED_LIBADD])
 
@@ -471,7 +437,6 @@ dnl ----
 		php_http_env.h \
 		php_http_env_request.h \
 		php_http_env_response.h \
-		php_http_etag.h \
 		php_http_exception.h \
 		php_http_filter.h \
 		php_http.h \

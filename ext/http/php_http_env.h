@@ -18,7 +18,6 @@
 
 struct php_http_env_globals {
 	zval *server_var;
-	char *etag_mode;
 
 	struct {
 		HashTable *headers;

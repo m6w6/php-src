@@ -50,7 +50,7 @@ if (PHP_HTTP != "no") {
 		"php_http_client_request.c php_http_client_response.c " +
 		"php_http_cookie.c php_http_curl.c php_http_client_curl.c " +
 		"php_http_encoding.c php_http_env.c php_http_env_request.c " +
-		"php_http_env_response.c php_http_etag.c php_http_exception.c php_http_filter.c php_http_header_parser.c " +
+		"php_http_env_response.c php_http_exception.c php_http_filter.c php_http_header_parser.c " +
 		"php_http_header.c php_http_info.c php_http_message.c php_http_message_body.c php_http_message_parser.c " +
 		"php_http_misc.c php_http_negotiate.c php_http_object.c php_http_options.c php_http_params.c " +
 		"php_http_querystring.c " +
@@ -72,20 +72,8 @@ if (PHP_HTTP != "no") {
 	} else {
 		WARNING("zlib encoding functions not enabled; libraries and headers not found");
 	}
-	
-	if (typeof(PHP_HASH) != "undefined" && PHP_HASH != "no") {
-		var f;
-		
-		if ((f = check_for_pecl_ext("hash")) || (f = check_for_main_ext("hash"))) {
-			ADD_FLAG("CFLAGS_HTTP", '/I "' + f + '" /DHTTP_HAVE_PHP_HASH_H=1');
-			ADD_EXTENSION_DEP("http", "hash", true);
-		}
-	}
-	
-	if (PHP_SESSION != "no") {
-		ADD_EXTENSION_DEP("http", "session", true);
-	}
-	
+
+	// WTF is here a dep on ext/curl?	
 	if (PHP_CURL != "no") {
 		ADD_EXTENSION_DEP("http", "curl", true);
 	}

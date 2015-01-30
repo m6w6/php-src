@@ -31,6 +31,6 @@ echo stream_get_contents($f);
 --EXPECT--
 HTTP/1.1 200 OK
 Accept-Ranges: bytes
-ETag: "fc8305a1"
+ETag: "7e109797e472ae8cbd20d7a4d7e231a96324377c"
 
 foo: bar

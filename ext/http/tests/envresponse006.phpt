@@ -22,10 +22,10 @@ var_dump(stream_get_contents($f));
 Done
 --EXPECT--
 Test
-string(77) "HTTP/1.1 200 OK
+string(109) "HTTP/1.1 200 OK
 Accept-Ranges: bytes
 Foo: bar, baz
-ETag: "8c736521"
+ETag: "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
 
 foo"
 Done
