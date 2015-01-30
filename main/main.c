@@ -58,6 +58,7 @@
 #include "php_ini.h"
 #include "php_globals.h"
 #include "php_main.h"
+#include "php_raphf.h"
 #include "fopen_wrappers.h"
 #include "ext/standard/php_standard.h"
 #include "ext/standard/php_string.h"

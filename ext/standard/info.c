@@ -31,6 +31,7 @@
 #include "SAPI.h"
 #include <time.h>
 #include "php_main.h"
+#include "php_raphf.h"
 #include "zend_globals.h"		/* needs ELS */
 #include "zend_extensions.h"
 #include "zend_highlight.h"

@@ -29,6 +29,8 @@
 #include "php_http.h"
 #include "php_incomplete_class.h"
 #include "php_getopt.h"
+#include "php_propro.h"
+#include "php_raphf.h"
 #include "ext/standard/info.h"
 #include "ext/session/php_session.h"
 #include "zend_operators.h"
