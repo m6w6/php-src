@@ -103,6 +103,8 @@ if (is_readable("/proc/cpuinfo")) {
 	$concurrency = min(64, max(1, preg_match_all("/^processor/mi", file_get_contents("/proc/cpuinfo"))));
 } elseif (($nproc = shell_exec(__DIR__ . "/build/shtool path nproc"))) {
 	$concurrency = shell_exec($nproc);
+} elseif (($sysctl = shell_exec(__DIR__ . "/build/shtool path sysctl"))) {
+	$concurrency = shell_exec("$sysctl -n hw.ncpu");
 } else {
 	$concurrency = 2;
 }
