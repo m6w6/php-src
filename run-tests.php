@@ -98,8 +98,11 @@ if ((substr(PHP_OS, 0, 3) == "WIN") && empty($environment["SystemRoot"])) {
   $environment["SystemRoot"] = getenv("SystemRoot");
 }
 
+$dir_concurrency = true;
 if (is_readable("/proc/cpuinfo")) {
 	$concurrency = min(64, max(1, preg_match_all("/^processor/mi", file_get_contents("/proc/cpuinfo"))));
+} elseif (($nproc = shell_exec(__DIR__ . "/build/shtool path nproc"))) {
+	$concurrency = shell_exec($nproc);
 } else {
 	$concurrency = 2;
 }
@@ -238,7 +241,7 @@ $no_file_cache = '-d opcache.file_cache= -d opcache.file_cache_only=0';
 
 function write_information($show_html)
 {
-	global $cwd, $php, $php_cgi, $phpdbg, $php_info, $user_tests, $ini_overwrites, $pass_options, $exts_to_test, $leak_check, $valgrind_header, $no_file_cache, $concurrency;
+	global $cwd, $php, $php_cgi, $phpdbg, $php_info, $user_tests, $ini_overwrites, $pass_options, $exts_to_test, $leak_check, $valgrind_header, $no_file_cache, $concurrency, $dir_concurrency;
 
 	// Get info from php
 	$info_file = __DIR__ . '/run-test-info.php';
@@ -306,7 +309,7 @@ Extra dirs  : ";
 	}
 	echo "
 VALGRIND    : " . ($leak_check ? $valgrind_header : 'Not used') . "
-CONCURRENCY : " . $concurrency . "
+CONCURRENCY : " . $concurrency . " " . ($dir_concurrency ? "(by-dir)":"") . "
 =====================================================================
 ";
 }
@@ -671,6 +674,12 @@ if (isset($argc) && $argc > 1) {
 				case '--concurrency':
 					$concurrency = min(64, max(1, $argv[++$i]));
 					break;
+				case '--dir-concurrency':
+					$dir_concurrency = true;
+					break;
+				case '--no-dir-concurrency':
+					$dir_concurrency = false;
+					break;
 
 				default:
 					echo "Illegal switch '$switch' specified!\n";
@@ -751,6 +760,12 @@ Options:
 
     --no-clean  Do not execute clean section if any.
 
+    --concurrency [n]
+                Use [n] jobs to execute several tests concurrently. 
+
+    --[no-]dir-concurrency
+                Tests in the same directory [do not] build a concurrency group.  
+
 HELP;
 					exit(1);
 			}
@@ -802,7 +817,7 @@ HELP;
 		verify_config();
 		write_information($html_output);
 		if ($concurrency > 2 ) {
-			shuffle($test_files);
+			#shuffle($test_files);
 		} else {
 			usort($test_files, "test_sort");
 		}
@@ -1243,7 +1258,7 @@ function run_all_tests($test_files, $env, $redir_tested = null)
 	global $test_results, $failed_tests_file, $php, $test_cnt, $test_idx, $concurrency, $procs;
 
 	while ($name = array_shift($test_files)) {
-
+		$orig = $name;
 		if (is_array($name)) {
 			$index = "# $name[1]: $name[0]";
 
@@ -1274,7 +1289,7 @@ function run_all_tests($test_files, $env, $redir_tested = null)
 		});
 		if ($result === "DEFERRED") {
 			$test_idx--;
-			array_splice($test_files, 10, 0, array($name));
+			array_push($test_files, $orig);
 		}
 	}
 
@@ -1310,7 +1325,7 @@ function run_test($php, $file, $env, $cb)
 	global $log_format, $info_params, $ini_overwrites, $cwd, $PHP_FAILED_TESTS;
 	global $pass_options, $DETAILED, $IN_REDIRECT, $test_cnt, $test_idx, $test_map;
 	global $leak_check, $temp_source, $temp_target, $cfg, $environment;
-	global $no_clean, $test_cgroups;
+	global $no_clean, $test_cgroups, $concurrency, $dir_concurrency;
 	global $valgrind_version;
 	global $JUNIT;
 	global $SHOW_ONLY_GROUPS;
@@ -1463,9 +1478,25 @@ TEST $file
 		return 'BORKED';
 	}
 
-	if (!empty($section_text["CONCURRENCY_GROUP"])) {
-		if (strlen($cgroup = trim($section_text["CONCURRENCY_GROUP"]))) {
-			if (isset($test_cgroups[$cgroup])) {
+	if ($concurrency) {
+		if (!empty($section_text["CONCURRENCY_GROUP"])) {
+			if (strlen($cgroup = trim($section_text["CONCURRENCY_GROUP"]))) {
+				if (isset($test_cgroups[$cgroup])) {
+					return "DEFERRED";
+				} else {
+					$test_cgroups[$cgroup] = true;
+				}
+			}
+		}
+		if ($dir_concurrency) {
+			$parts = explode("/", dirname($file));
+			foreach ($parts as $key => $val) {
+				if ($val === "tests") {
+					$cgroup = implode("/", array_slice($parts, $key-1));
+					break;
+				}
+			}
+			if (!empty($gcroup) && isset($test_cgroups[$cgroup])) {
 				return "DEFERRED";
 			} else {
 				$test_cgroups[$cgroup] = true;
@@ -2029,7 +2060,7 @@ COMMAND $cmd
 	junit_start_timer($shortname);
 
 	system_with_callback($cmd, $env, isset($section_text['STDIN']) ? $section_text['STDIN'] : null, $cb,
-		function($out) use($php, &$old_php, $cmd, $env, $shortname, $info, $file, $tested, $tested_file, $section_text, $ini_overwrites, $memcheck_filename, $pass_options, $temp_clean, $test_clean, $tmp_post, $warn, $temp_filenames, $exp_filename, $output_filename, $diff_filename, $sh_filename, $log_filename, $test_file, $IN_REDIRECT, &$cgroup) {
+		function($out) use($php, &$old_php, $cmd, $env, $shortname, $info, $file, $tested, $tested_file, $section_text, $ini_overwrites, $memcheck_filename, $pass_options, $temp_clean, $test_clean, $tmp_post, $warn, $temp_filenames, $exp_filename, $output_filename, $diff_filename, $sh_filename, $log_filename, $test_file, $IN_REDIRECT, $no_file_cache, &$cgroup) {
 			global $cfg, $cwd, $leak_check, $no_clean, $log_format, $PHP_FAILED_TESTS, $test_cgroups;
 
 			junit_finish_timer($shortname);
@@ -2786,7 +2817,7 @@ function show_test($test_idx, $shortname)
 
 	$test_map[$shortname] = $test_idx;
 
-	$str = sprintf("%5d TEST $test_idx/$test_cnt [$shortname]\r", $test_idx);
+	$str = sprintf("TEST %5d $test_idx/$test_cnt [$shortname]\r", $test_idx);
 	$line_length = strlen($str);
 	echo $str;
 	flush();
@@ -2795,7 +2826,8 @@ function show_test($test_idx, $shortname)
 function show_test_active($active) {
 	global $test_idx, $test_cnt, $line_length;
 
-	$str = sprintf("TEST %d/%d [no. %s still running]\r", $test_idx, $test_cnt, implode(", ", (array) $active));
+	echo str_repeat(" ", $line_length), "\r";
+	$str = sprintf("TEST %d/%d [%d still running: %s]\r", $test_idx, $test_cnt, count($active), implode(", ", (array) $active));
 	$line_length = strlen($str);
 	echo $str;
 	flush();
@@ -2807,7 +2839,7 @@ function show_result($result, $tested, $tested_file, $extra = '', $temp_filename
 	global $test_idx, $test_map;
 
 	if (!$SHOW_ONLY_GROUPS || in_array($result, $SHOW_ONLY_GROUPS)) {
-		printf("%5d $result $tested [$tested_file] $extra\n", $test_map[$tested_file]);
+		printf("$result %5d $tested [$tested_file] $extra\n", $test_map[$tested_file]);
 	} else {
 		// Write over the last line to avoid random trailing chars on next echo
 		echo str_repeat(" ", $line_length), "\r";
