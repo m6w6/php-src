@@ -52,6 +52,18 @@ function run_fpm($config, &$out = false, $extra_args = '') /* {{{ */
 }
 /* }}} */
 
+function test_fpm_conf($config, &$msg = NULL) { /* {{{ */
+	$cfg = dirname(__FILE__).'/test-fpm-config.tmp';
+	file_put_contents($cfg, $config);
+	exec(get_fpm_path() . ' -t -y ' . $cfg . ' 2>&1', $output, $code);	
+	if ($code) {
+		$msg = preg_replace("/\[.+?\]/", "", $output[0]);
+		return false;
+	}
+	return true;
+}
+/* }}} */
+
 function run_fpm_till($needle, $config, $max = 10) /* {{{ */
 {
     $i = 0;
@@ -76,4 +88,37 @@ function run_fpm_till($needle, $config, $max = 10) /* {{{ */
 }
 /* }}} */
 
-?>
+function fpm_display_log($tail, $n=1, $ignore='systemd') { /* {{{ */
+	while ($n) {
+		$a = fgets($tail);
+		if (empty($ignore) || !strpos($a, $ignore)) {
+			echo $a;
+			$n--;
+		}
+	}
+} /* }}} */
+
+function run_request($host, $port, $uri='/ping', $query='') { /* {{{ */
+	require_once 'fcgi.inc';
+	$client = new Adoy\FastCGI\Client($host, $port);
+	$params = array(
+		'GATEWAY_INTERFACE' => 'FastCGI/1.0',
+		'REQUEST_METHOD'    => 'GET',
+		'SCRIPT_FILENAME'   => $uri,
+		'SCRIPT_NAME'       => $uri,
+		'QUERY_STRING'      => $query,
+		'REQUEST_URI'       => $uri . ($query ? '?'.$query : ""),
+		'DOCUMENT_URI'      => $uri,
+		'SERVER_SOFTWARE'   => 'php/fcgiclient',
+		'REMOTE_ADDR'       => '127.0.0.1',
+		'REMOTE_PORT'       => '9985',
+		'SERVER_ADDR'       => '127.0.0.1',
+		'SERVER_PORT'       => '80',
+		'SERVER_NAME'       => php_uname('n'),
+		'SERVER_PROTOCOL'   => 'HTTP/1.1',
+		'CONTENT_TYPE'      => '',
+		'CONTENT_LENGTH'    => 0
+	);
+	return $client->request($params, false)."\n";
+}
+/* }}} */

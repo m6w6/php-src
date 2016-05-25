@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 2.6.2.  */
+/* A Bison parser, made by GNU Bison 2.7.12-4996.  */
 
 /* Bison interface for Yacc-like parsers in C
    
-      Copyright (C) 1984, 1989-1990, 2000-2012 Free Software Foundation, Inc.
+      Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -30,8 +30,8 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef PHPDBG_SAPI_PHPDBG_PHPDBG_PARSER_H
-# define PHPDBG_SAPI_PHPDBG_PHPDBG_PARSER_H
+#ifndef YY_PHPDBG_SAPI_PHPDBG_PHPDBG_PARSER_H_INCLUDED
+# define YY_PHPDBG_SAPI_PHPDBG_PHPDBG_PARSER_H_INCLUDED
 /* Enabling traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -40,8 +40,8 @@
 extern int phpdbg_debug;
 #endif
 /* "%code requires" blocks.  */
-/* Line 2055 of yacc.c  */
-#line 31 "/var/root/php-src/sapi/phpdbg/phpdbg_parser.y"
+/* Line 2060 of yacc.c  */
+#line 36 "/Users/Bob/php-src-X/sapi/phpdbg/phpdbg_parser.y"
 
 #include "phpdbg.h"
 #ifndef YY_TYPEDEF_YY_SCANNER_T
@@ -50,7 +50,7 @@ typedef void* yyscan_t;
 #endif
 
 
-/* Line 2055 of yacc.c  */
+/* Line 2060 of yacc.c  */
 #line 55 "sapi/phpdbg/phpdbg_parser.h"
 
 /* Tokens.  */
@@ -69,14 +69,16 @@ typedef void* yyscan_t;
      T_COLON = 265,
      T_DCOLON = 266,
      T_POUND = 267,
-     T_PROTO = 268,
-     T_DIGITS = 269,
-     T_LITERAL = 270,
-     T_ADDR = 271,
-     T_OPCODE = 272,
-     T_ID = 273,
-     T_INPUT = 274,
-     T_UNEXPECTED = 275
+     T_SEPARATOR = 268,
+     T_PROTO = 269,
+     T_DIGITS = 270,
+     T_LITERAL = 271,
+     T_ADDR = 272,
+     T_OPCODE = 273,
+     T_ID = 274,
+     T_INPUT = 275,
+     T_UNEXPECTED = 276,
+     T_REQ_ID = 277
    };
 #endif
 /* Tokens.  */
@@ -90,14 +92,16 @@ typedef void* yyscan_t;
 #define T_COLON 265
 #define T_DCOLON 266
 #define T_POUND 267
-#define T_PROTO 268
-#define T_DIGITS 269
-#define T_LITERAL 270
-#define T_ADDR 271
-#define T_OPCODE 272
-#define T_ID 273
-#define T_INPUT 274
-#define T_UNEXPECTED 275
+#define T_SEPARATOR 268
+#define T_PROTO 269
+#define T_DIGITS 270
+#define T_LITERAL 271
+#define T_ADDR 272
+#define T_OPCODE 273
+#define T_ID 274
+#define T_INPUT 275
+#define T_UNEXPECTED 276
+#define T_REQ_ID 277
 
 
 
@@ -117,10 +121,10 @@ int phpdbg_parse ();
 #endif
 #else /* ! YYPARSE_PARAM */
 #if defined __STDC__ || defined __cplusplus
-int phpdbg_parse (void *tsrm_ls);
+int phpdbg_parse (void);
 #else
 int phpdbg_parse ();
 #endif
 #endif /* ! YYPARSE_PARAM */
 
-#endif /* !PHPDBG_SAPI_PHPDBG_PHPDBG_PARSER_H  */
+#endif /* !YY_PHPDBG_SAPI_PHPDBG_PHPDBG_PARSER_H_INCLUDED  */

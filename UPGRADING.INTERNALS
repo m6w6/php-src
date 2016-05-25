@@ -1,27 +1,35 @@
-$Id$
+PHP 7.1 INTERNALS UPGRADE NOTES
 
-UPGRADE NOTES - PHP X.Y
-
+0. Wiki Examples
 1. Internal API changes
-  a. Addition of do_operation and compare object handlers
-  b. return_value_ptr now always available, RETVAL_ZVAL_FAST macros
-  c. POST data handling
-  d. Arginfo changes
 
 2. Build system changes
   a. Unix build system changes
   b. Windows build system changes
 
+3. Module changes
+
+================
+0. Wiki Examples
+================
+
+The wiki contains multiple examples and further explanations of the internal
+changes. See: https://wiki.php.net/phpng-upgrading
+
 
 ========================
 1. Internal API changes
 ========================
 
-  a. zend_set_memory_limit() now takes the TSRMLS_CC macro as its last argument
-
-
 ========================
 2. Build system changes
 ========================
 
-  
+  a. Unix build system changes
+
+  b. Windows build system changes
+
+========================
+3. Module changes
+========================
+

@@ -68,7 +68,10 @@ get_phpt_files($extension_test_path, $count, $phpt_files);
 
 $extension_method_info = mark_methods_as_tested($extension_method_info, $phpt_files);
 
-
+/**
+ * The loop to ouput the test coverage info
+ * Should output: Extension, Class Name, Method/Function Name, Test Status, Test Files
+ */ 
 foreach($extension_method_info as $record) {
     echo $record[EXTENSION_NAME] . ",";
     echo $record[CLASS_NAME] . ",";
@@ -88,7 +91,7 @@ function mark_methods_as_tested($method_info, $phpt_files) {
 
         foreach($tested_functions as $tested_function) {
 
-            // go through method info array marking this funtion as tested
+            // go through method info array marking this function as tested
             foreach($method_info as &$current_method_record) {
                 if (strcasecmp($tested_function, $current_method_record[METHOD_NAME]) == 0) {
                     // matched the method name
@@ -193,11 +196,14 @@ function get_phpt_files($dir, &$phpt_file_count, &$all_phpt)
     }
 }
 
-function  extract_tests($file) {
+/**
+ * Extract tests from a specified file, returns an array of tested function tokens 
+ */ 
+function extract_tests($file) {
 	$code = file_get_contents($file);
 	
 	if (!preg_match('/--FILE--\s*(.*)\s*--(EXPECTF|EXPECTREGEX|EXPECT)?--/is', $code, $r)) {
-//		print "Unable to get code in ".$file."\n";
+		//print "Unable to get code in ".$file."\n";
 		return array();
 	}
 	

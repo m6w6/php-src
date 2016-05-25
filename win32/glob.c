@@ -71,12 +71,6 @@
 #  define ARG_MAX 14500
 # endif
 #endif
-#ifndef S_ISDIR
-#define S_ISDIR(m) (((m) & _S_IFDIR) == _S_IFDIR)
-#endif
-#ifndef S_ISLNK
-#define S_ISLNK(m) (0)
-#endif
 #endif
 
 #include "php.h"
@@ -146,10 +140,10 @@ typedef char Char;
 
 static int	 compare(const void *, const void *);
 static int	 g_Ctoc(const Char *, char *, u_int);
-static int	 g_lstat(Char *, struct stat *, glob_t *);
+static int	 g_lstat(Char *, zend_stat_t *, glob_t *);
 static DIR	*g_opendir(Char *, glob_t *);
 static Char	*g_strchr(Char *, int);
-static int	 g_stat(Char *, struct stat *, glob_t *);
+static int	 g_stat(Char *, zend_stat_t *, glob_t *);
 static int	 glob0(const Char *, glob_t *);
 static int	 glob1(Char *, Char *, glob_t *, size_t *);
 static int	 glob2(Char *, Char *, Char *, Char *, Char *, Char *,
@@ -293,17 +287,19 @@ globexp2(ptr, pattern, pglob, rv)
 	}
 
 	for (i = 0, pl = pm = ptr; pm <= pe; pm++) {
+		const Char *pb;
+
 		switch (*pm) {
 		case LBRACKET:
 			/* Ignore everything between [] */
-			for (pl = pm++; *pm != RBRACKET && *pm != EOS; pm++)
+			for (pb = pm++; *pm != RBRACKET && *pm != EOS; pm++)
 				;
 			if (*pm == EOS) {
 				/*
 				 * We could not find a matching RBRACKET.
 				 * Ignore and just look for RBRACE
 				 */
-				pm = pl;
+				pm = pb;
 			}
 			break;
 
@@ -559,7 +555,7 @@ glob2(pathbuf, pathbuf_last, pathend, pathend_last, pattern,
 	glob_t *pglob;
 	size_t *limitp;
 {
-	struct stat sb;
+	zend_stat_t sb;
 	Char *p, *q;
 	int anymeta;
 
@@ -742,7 +738,7 @@ globextend(path, pglob, limitp)
 
 	for (p = path; *p++;)
 		;
-	len = (size_t)(p - path);
+	len = (u_int)(p - path);
 	*limitp += len;
 	if ((copy = malloc(len)) != NULL) {
 		if (g_Ctoc(path, copy, len)) {
@@ -856,7 +852,7 @@ g_opendir(str, pglob)
 static int
 g_lstat(fn, sb, pglob)
 	register Char *fn;
-	struct stat *sb;
+	zend_stat_t *sb;
 	glob_t *pglob;
 {
 	char buf[MAXPATHLEN];
@@ -871,7 +867,7 @@ g_lstat(fn, sb, pglob)
 static int
 g_stat(fn, sb, pglob)
 	register Char *fn;
-	struct stat *sb;
+	zend_stat_t *sb;
 	glob_t *pglob;
 {
 	char buf[MAXPATHLEN];
@@ -929,3 +925,12 @@ qprintf(str, s)
 	(void)printf("\n");
 }
 #endif
+
+/*
+ * Local variables:
+ * tab-width: 4
+ * c-basic-offset: 4
+ * End:
+ * vim600: sw=4 ts=4 fdm=marker
+ * vim<600: sw=4 ts=4
+ */

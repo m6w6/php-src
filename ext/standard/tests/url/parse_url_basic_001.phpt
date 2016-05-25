@@ -454,13 +454,15 @@ echo "Done";
   string(16) "some_page_ref123"
 }
 
---> http://secret:@www.php.net/index.php?test=1&test2=char&test3=mixesCI#some_page_ref123: array(6) {
+--> http://secret:@www.php.net/index.php?test=1&test2=char&test3=mixesCI#some_page_ref123: array(7) {
   ["scheme"]=>
   string(4) "http"
   ["host"]=>
   string(11) "www.php.net"
   ["user"]=>
   string(6) "secret"
+  ["pass"]=>
+  string(0) ""
   ["path"]=>
   string(10) "/index.php"
   ["query"]=>
@@ -469,13 +471,15 @@ echo "Done";
   string(16) "some_page_ref123"
 }
 
---> http://:hideout@www.php.net:80/index.php?test=1&test2=char&test3=mixesCI#some_page_ref123: array(7) {
+--> http://:hideout@www.php.net:80/index.php?test=1&test2=char&test3=mixesCI#some_page_ref123: array(8) {
   ["scheme"]=>
   string(4) "http"
   ["host"]=>
   string(11) "www.php.net"
   ["port"]=>
   int(80)
+  ["user"]=>
+  string(0) ""
   ["pass"]=>
   string(7) "hideout"
   ["path"]=>
@@ -495,23 +499,6 @@ echo "Done";
   string(6) "secret"
   ["pass"]=>
   string(7) "hideout"
-  ["path"]=>
-  string(10) "/index.php"
-  ["query"]=>
-  string(31) "test=1&test2=char&test3=mixesCI"
-  ["fragment"]=>
-  string(16) "some_page_ref123"
-}
-
---> http://secret@hideout@www.php.net:80/index.php?test=1&test2=char&test3=mixesCI#some_page_ref123: array(7) {
-  ["scheme"]=>
-  string(4) "http"
-  ["host"]=>
-  string(11) "www.php.net"
-  ["port"]=>
-  int(80)
-  ["user"]=>
-  string(14) "secret@hideout"
   ["path"]=>
   string(10) "/index.php"
   ["query"]=>
@@ -685,23 +672,6 @@ echo "Done";
   string(2) "gg"
   ["path"]=>
   string(7) "9130731"
-}
-
---> http://user:@pass@host/path?argument?value#etc: array(7) {
-  ["scheme"]=>
-  string(4) "http"
-  ["host"]=>
-  string(4) "host"
-  ["user"]=>
-  string(4) "user"
-  ["pass"]=>
-  string(5) "@pass"
-  ["path"]=>
-  string(5) "/path"
-  ["query"]=>
-  string(14) "argument?value"
-  ["fragment"]=>
-  string(3) "etc"
 }
 
 --> http://10.10.10.10/:80: array(3) {
@@ -879,4 +849,10 @@ echo "Done";
 --> http://blah.com:123456: bool(false)
 
 --> http://blah.com:abcdef: bool(false)
+
+--> http://secret@hideout@www.php.net:80/index.php?test=1&test2=char&test3=mixesCI#some_page_ref123: bool(false)
+
+--> http://user:@pass@host/path?argument?value#etc: bool(false)
+
+--> http://foo.com\@bar.com: bool(false)
 Done
